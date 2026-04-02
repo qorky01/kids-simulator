@@ -25,6 +25,7 @@
       --c6: #cc5de8;
       --c7: #20c997;
       --c8: #f06595;
+      --c9: #38bdf8;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -170,6 +171,7 @@
     .app-card[data-color="c6"]::before { background: var(--c6); }
     .app-card[data-color="c7"]::before { background: var(--c7); }
     .app-card[data-color="c8"]::before { background: var(--c8); }
+    .app-card[data-color="c9"]::before { background: var(--c9); }
 
     .app-card[data-color="c1"] { border-color: rgba(255,107,107,0.3); }
     .app-card[data-color="c2"] { border-color: rgba(255,217,61,0.3); }
@@ -179,6 +181,7 @@
     .app-card[data-color="c6"] { border-color: rgba(204,93,232,0.3); }
     .app-card[data-color="c7"] { border-color: rgba(32,201,151,0.3); }
     .app-card[data-color="c8"] { border-color: rgba(240,101,149,0.3); }
+    .app-card[data-color="c9"] { border-color: rgba(56,189,248,0.3); }
 
     .app-icon {
       width: 52px;
@@ -357,6 +360,11 @@
       <div class="app-icon">🚕</div>
       <div class="app-name">택시<br>미터기</div>
       <div class="app-desc">실제 요금 계산<br>속도·거리 측정</div>
+    </div>
+    <div class="app-card" data-color="c9" data-src="bus/index.html" data-title="버스 기사 시뮬레이터">
+      <div class="app-icon">🚌</div>
+      <div class="app-name">버스 기사<br>시뮬레이터</div>
+      <div class="app-desc">운전석·요금단말기<br>7738·7739·7612·075A</div>
     </div>
   </div>
 
