@@ -258,7 +258,7 @@
     function playSiren(type) {
         stopSiren();
         if (type === 0) return;
-        aCtx.resume();
+        if (!aCtx) return;
         sirenOsc = aCtx.createOscillator();
         sirenGain = aCtx.createGain();
         sirenOsc.type = 'triangle';
@@ -340,6 +340,8 @@
 
     function toggleSiren() {
         const btn = document.getElementById('s-btn');
+        // 아이폰 사파리: 터치 이벤트 직접 연결된 곳에서 resume 호출
+        if (aCtx && aCtx.state === 'suspended') aCtx.resume();
         sirenType = (sirenType+1)%4; haptic(50);
         if (sirenType===0) { btn.classList.remove('active-blue'); stopSiren(); return; }
         btn.classList.add('active-blue'); playSiren(sirenType);
