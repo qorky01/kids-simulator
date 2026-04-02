@@ -12,6 +12,7 @@ const STATIC_ASSETS = [
   '/kids-simulator/airportsubway/index.html',
   '/kids-simulator/slidecontrol/index.html',
   '/kids-simulator/secom/index.html',
+  '/kids-simulator/bus/index.html',
 ];
 
 // 설치: 핵심 파일 캐시
