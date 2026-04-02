@@ -531,6 +531,8 @@ function beep(freq, dur, type='sine', vol=0.1) {
 }
 
 function honk() {
+  // iOS: 터치 이벤트 직접 연결된 함수에서 resume 호출
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   beep(220, 0.8, 'sawtooth', 0.15);
   setTimeout(() => beep(196, 0.5, 'sawtooth', 0.12), 300);
   haptic(200);
@@ -759,8 +761,13 @@ function addFareLog(text) {
   log.insertBefore(line, log.firstChild);
 }
 
-// 초기화
-document.addEventListener('touchstart', () => { try { getAudio(); } catch(e) {} }, { once: true });
+// 초기화 - iOS 대응: 모든 터치에서 resume 시도
+document.addEventListener('touchstart', () => {
+  try { getAudio(); } catch(e) {}
+});
+document.addEventListener('pointerdown', () => {
+  try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
+});
 changeRoute();
 </script>
 </body>
