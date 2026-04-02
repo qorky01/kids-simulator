@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Drop Water Slide Control Box (CCTV + Signal)</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#121b2e;
+      --text:#eaf1ff;
+      --muted:#9fb0d0;
+      --line:#263457;
+      --good:#28e070;
+      --blue:#2f7bff;
+      --warn:#ffcc33;
+      --red:#ff3b3b;
+      --shadow: 0 18px 40px rgba(0,0,0,.35);
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 20% 10%, #1a2d64 0%, rgba(26,45,100,0) 45%),
+                  radial-gradient(900px 600px at 80% 20%, #0f6a77 0%, rgba(15,106,119,0) 45%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .wrap{width:min(1040px, 100%); display:grid; gap:14px;}
+    .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+    .title{display:flex; flex-direction:column; gap:2px;}
+    .title h1{margin:0; font-size:18px; letter-spacing:.2px;}
+    .title small{color:var(--muted)}
+    .statusPills{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+      user-select:none;
+    }
+    .dot{width:9px;height:9px;border-radius:999px;background:#666;box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+    .dot.good{background:var(--good)}
+    .dot.warn{background:var(--warn)}
+    .dot.red{background:var(--red)}
+
+    .grid{display:grid; grid-template-columns: 1.25fr .75fr; gap:14px;}
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .panelHeader{
+      padding:12px 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      background:rgba(0,0,0,.18);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .panelHeader b{font-size:14px}
+    .panelBody{padding:14px}
+
+    /* Left control area layout */
+    .controlArea{
+      display:grid;
+      grid-template-columns: 1fr 270px;
+      gap:14px;
+      align-items:stretch;
+    }
+
+    .box{
+      background:rgba(0,0,0,.20);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      padding:14px;
+    }
+
+    .hint{color:var(--muted); font-size:12px; line-height:1.35;}
+    .buttonsBox{display:grid; grid-template-rows:auto auto 1fr; gap:12px; min-height:420px;}
+    .bigBtns{display:flex; gap:18px; align-items:center; justify-content:center; padding:6px 0 2px;}
+    .roundBtn{
+      width:120px;height:120px;border-radius:999px;
+      border:2px solid rgba(255,255,255,.22);
+      background:rgba(255,255,255,.08);
+      display:grid; place-items:center;
+      cursor:pointer; user-select:none;
+      box-shadow: 0 12px 22px rgba(0,0,0,.35), inset 0 0 0 8px rgba(255,255,255,.06);
+      transition: transform .08s ease, filter .08s ease;
+      position:relative;
+      touch-action:manipulation;
+      color:var(--text);
+    }
+    .roundBtn:active{transform: translateY(2px) scale(.98); filter:brightness(1.05)}
+    .roundBtn span{font-weight:800; letter-spacing:.5px; font-size:14px; text-align:center; line-height:1.15; padding:0 8px;}
+    .roundBtn.blue{background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.40), rgba(255,255,255,.06) 45%), rgba(47,123,255,.35)}
+    .roundBtn.green{background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.40), rgba(255,255,255,.06) 45%), rgba(40,224,112,.28)}
+    .ring{position:absolute; inset:-10px; border-radius:999px; border:3px solid rgba(255,255,255,.0); opacity:0; pointer-events:none;}
+    .roundBtn.pulse .ring{opacity:1; animation:pulse .55s ease-out 1;}
+    @keyframes pulse{
+      0%{transform:scale(.92);border-color:rgba(255,255,255,.0)}
+      35%{transform:scale(1.02);border-color:rgba(255,255,255,.55)}
+      100%{transform:scale(1.12);border-color:rgba(255,255,255,.0);opacity:0}
+    }
+
+    /* Signal light */
+    .signalRow{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+    .signal{
+      display:flex; align-items:center; gap:12px;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.18);
+      flex:1;
+    }
+    .tower{
+      width:44px;
+      padding:8px 7px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.06);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+    }
+    .lamp{
+      width:24px;height:24px;border-radius:999px;
+      background:rgba(255,255,255,.10);
+      box-shadow: inset 0 0 0 4px rgba(0,0,0,.20);
+      opacity:.35;
+      transition:opacity .12s ease, filter .12s ease;
+    }
+    .lamp.on{opacity:1; filter:brightness(1.08);}
+    .lamp.red.on{background:rgba(255,59,59,.95); box-shadow: 0 0 16px rgba(255,59,59,.35), inset 0 0 0 3px rgba(0,0,0,.18)}
+    .lamp.yellow.on{background:rgba(255,204,51,.95); box-shadow: 0 0 16px rgba(255,204,51,.35), inset 0 0 0 3px rgba(0,0,0,.18)}
+    .lamp.green.on{background:rgba(40,224,112,.95); box-shadow: 0 0 16px rgba(40,224,112,.35), inset 0 0 0 3px rgba(0,0,0,.18)}
+    .signalInfo{display:flex; flex-direction:column; gap:2px;}
+    .signalInfo b{font-size:13px}
+    .signalInfo small{color:var(--muted); font-size:12px}
+
+    /* Door */
+    .doorBox{display:flex; flex-direction:column; gap:12px; min-height:420px;}
+    .door{
+      flex:1;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .doorInner{
+      width:72%; height:88%;
+      border-radius:14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.14);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      letter-spacing:.4px;
+      color:var(--muted);
+      position:relative;
+    }
+    .handle{
+      position:absolute; right:14%; top:50%;
+      transform:translateY(-50%);
+      width:10px;height:56px;border-radius:999px;
+      background: rgba(255,255,255,.22);
+      box-shadow: inset 0 0 0 3px rgba(0,0,0,.15);
+    }
+    .doorState{display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:12px; color:var(--muted);}
+    .toggle{
+      border:none; border-radius:12px;
+      padding:10px 12px;
+      font-weight:800;
+      cursor:pointer;
+      background:rgba(255,255,255,.10);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.14);
+      touch-action:manipulation;
+    }
+    .toggle:active{transform:translateY(1px)}
+    .door.open .doorInner{
+      background: linear-gradient(180deg, rgba(40,224,112,.22), rgba(255,255,255,.03));
+      color:#c8ffe0;
+    }
+    .door.open:before{
+      content:"";
+      position:absolute;inset:0;
+      background: radial-gradient(420px 260px at 50% 30%, rgba(40,224,112,.18), rgba(0,0,0,0) 60%);
+      pointer-events:none;
+    }
+
+    /* CCTV real camera */
+    .cctvWrap{
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.22);
+      height:240px;
+      display:flex;
+      flex-direction:column;
+    }
+    .cctvHeader{
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.22);
+      font-size:12px;
+      color:var(--muted);
+    }
+    .cctvBody{
+      position:relative;
+      flex:1;
+      background:linear-gradient(135deg, rgba(47,123,255,.18), rgba(40,224,112,.14));
+      overflow:hidden;
+    }
+    video{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      object-fit:cover;
+      transform: scaleX(-1); /* 미러 (CCTV 느낌). 원치 않으면 삭제 */
+      background:#000;
+    }
+    .cctvOverlay{
+      position:absolute; inset:0;
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      pointer-events:none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:12px;
+      color:rgba(234,241,255,.92);
+      text-shadow:0 2px 12px rgba(0,0,0,.55);
+    }
+    .cctvTop{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+    .rec{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 8px; border-radius:999px;
+      background:rgba(0,0,0,.30);
+      border:1px solid rgba(255,255,255,.12);
+    }
+    .rec b{color:#ff5b5b}
+    .blink{width:8px;height:8px;border-radius:999px;background:#ff3b3b; animation: blink 1s infinite;}
+    @keyframes blink{ 0%,50%{opacity:1} 55%,100%{opacity:.2} }
+    .scan{
+      position:absolute; left:-40%; top:0;
+      width:40%; height:100%;
+      background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.12), rgba(255,255,255,0));
+      transform:skewX(-12deg);
+      animation: scan 3.6s linear infinite;
+      opacity:.55;
+      mix-blend-mode:screen;
+      pointer-events:none;
+    }
+    @keyframes scan{ 0%{left:-40%} 100%{left:140%} }
+    .cctvMsg{
+      position:absolute; inset:auto 12px 12px 12px;
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(0,0,0,.40);
+      border:1px solid rgba(255,255,255,.14);
+      color:rgba(234,241,255,.95);
+      font-size:12px;
+      display:none;
+    }
+    .cctvMsg.show{display:block}
+
+    /* Right panel log */
+    .log{height:480px; display:flex; flex-direction:column; gap:10px;}
+    .actions{display:flex; gap:10px; flex-wrap:wrap;}
+    .smallBtn{
+      flex:1; min-width:120px;
+      padding:10px 12px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.10);
+      color:var(--text);
+      font-weight:800;
+      cursor:pointer;
+      touch-action:manipulation;
+    }
+    .smallBtn:active{transform:translateY(1px)}
+    .smallBtn.danger{border-color: rgba(255,59,59,.40); background: rgba(255,59,59,.12)}
+    .logBox{
+      flex:1;
+      background:rgba(0,0,0,.20);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:12px;
+      overflow:auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:12px;
+      color:#dbe6ff;
+    }
+    .logLine{margin:0 0 8px 0; opacity:.95}
+    .logLine small{color:var(--muted)}
+    .footerNote{color:var(--muted); font-size:12px; line-height:1.35; padding:10px 2px 0;}
+
+    @media (max-width: 980px){
+      .grid{grid-template-columns: 1fr;}
+      .controlArea{grid-template-columns: 1fr;}
+      .log{height:auto}
+      .logBox{height:220px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>Drop Water Slide – Control Box</h1>
+        <small>✅ 진짜 CCTV(카메라) + 🚦 신호등 + 버튼 + 출입문</small>
+      </div>
+      <div class="statusPills">
+        <div class="pill"><span class="dot good" id="dotReady"></span>READY</div>
+        <div class="pill"><span class="dot warn" id="dotDoor"></span>DOOR</div>
+        <div class="pill"><span class="dot red" id="dotDrop"></span>DROP</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT: Controls -->
+      <section class="panel">
+        <div class="panelHeader">
+          <b>조작 패널</b>
+          <span style="color:var(--muted);font-size:12px;">카메라 권한 필요</span>
+        </div>
+
+        <div class="panelBody">
+          <div class="controlArea">
+            <div class="buttonsBox box">
+              <div class="hint">
+                ✅ <b>파란 버튼</b>: 준비(READY)<br/>
+                ✅ <b>초록 버튼</b>: 드롭(DROP)<br/>
+                🚪 문이 열려있으면 DROP이 잠김<br/>
+                🚦 신호등: 빨강=대기, 노랑=준비중, 초록=드롭 가능
+              </div>
+
+              <div class="signalRow">
+                <div class="signal" aria-label="신호등">
+                  <div class="tower">
+                    <div class="lamp red" id="lampRed"></div>
+                    <div class="lamp yellow" id="lampYellow"></div>
+                    <div class="lamp green" id="lampGreen"></div>
+                  </div>
+                  <div class="signalInfo">
+                    <b id="signalText">대기</b>
+                    <small id="signalSub">파란 버튼을 눌러 READY로 바꾸기</small>
+                  </div>
+                </div>
+                <button class="smallBtn" id="btnCamToggle" style="min-width:150px;">카메라 켜기</button>
+              </div>
+
+              <div class="bigBtns">
+                <button class="roundBtn blue" id="btnBlue" aria-label="파란 버튼">
+                  <div class="ring"></div>
+                  <span>파란 버튼<br/>READY</span>
+                </button>
+
+                <button class="roundBtn green" id="btnGreen" aria-label="초록 버튼">
+                  <div class="ring"></div>
+                  <span>초록 버튼<br/>DROP</span>
+                </button>
+              </div>
+
+              <div class="cctvWrap" aria-label="CCTV">
+                <div class="cctvHeader">
+                  <span>📷 CCTV (Real Camera)</span>
+                  <span id="camLabel">CAM-01</span>
+                </div>
+                <div class="cctvBody" id="cctvBody">
+                  <video id="video" playsinline autoplay muted></video>
+                  <div class="scan"></div>
+                  <div class="cctvOverlay">
+                    <div class="cctvTop">
+                      <div class="rec"><span class="blink"></span><b>REC</b> <span id="timeNow">--:--:--</span></div>
+                      <div id="cctvStatus">상태: 카메라 OFF</div>
+                    </div>
+                    <div>
+                      <div>문: <span id="doorText">닫힘</span></div>
+                      <div>모드: <span id="modeText">NORMAL</span></div>
+                    </div>
+                  </div>
+                  <div class="cctvMsg show" id="cctvMsg">
+                    카메라를 켜려면 <b>카메라 켜기</b>를 눌러서 권한을 허용해줘!
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Door -->
+            <aside class="doorBox box">
+              <div class="hint">
+                🚪 <b>출입문</b> (길쭉한 네모)<br/>
+                문이 열려 있으면 DROP은 잠겨!
+              </div>
+
+              <div class="door" id="door">
+                <div class="doorInner">
+                  출입문
+                  <div class="handle"></div>
+                </div>
+              </div>
+
+              <div class="doorState">
+                <span>현재: <b id="doorStateText">닫힘</b></span>
+                <button class="toggle" id="btnDoor">문 열기</button>
+              </div>
+
+              <div class="footerNote">
+                (아이용 놀이 안전 규칙) 문 닫힘 + READY 상태여야 드롭 가능!
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Log -->
+      <section class="panel">
+        <div class="panelHeader">
+          <b>상태 창</b>
+          <span style="color:var(--muted);font-size:12px;">터치 가능</span>
+        </div>
+        <div class="panelBody">
+          <div class="log">
+            <div class="actions">
+              <button class="smallBtn" id="btnReset">리셋</button>
+              <button class="smallBtn danger" id="btnAlarm">경고음</button>
+            </div>
+            <div class="logBox" id="logBox" aria-live="polite"></div>
+            <div class="footerNote">
+              📌 카메라가 안 켜지면: <b>https</b>로 열었는지 확인! (GitHub Pages OK)
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ---------- State ----------
+  let isReady = false;
+  let doorOpen = false;
+  let lastDropAt = 0;
+
+  let camOn = false;
+  let stream = null;
+
+  // ---------- DOM ----------
+  const $ = (id) => document.getElementById(id);
+
+  const btnBlue = $("btnBlue");
+  const btnGreen = $("btnGreen");
+  const btnDoor = $("btnDoor");
+  const door = $("door");
+
+  const dotReady = $("dotReady");
+  const dotDoor = $("dotDoor");
+  const dotDrop = $("dotDrop");
+
+  const lampRed = $("lampRed");
+  const lampYellow = $("lampYellow");
+  const lampGreen = $("lampGreen");
+  const signalText = $("signalText");
+  const signalSub = $("signalSub");
+
+  const doorStateText = $("doorStateText");
+  const doorText = $("doorText");
+  const cctvStatus = $("cctvStatus");
+  const modeText = $("modeText");
+  const timeNow = $("timeNow");
+
+  const logBox = $("logBox");
+
+  const btnReset = $("btnReset");
+  const btnAlarm = $("btnAlarm");
+
+  const btnCamToggle = $("btnCamToggle");
+  const video = $("video");
+  const cctvMsg = $("cctvMsg");
+
+  // ---------- Utils ----------
+  function nowStr(){
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
+    const ss = String(d.getSeconds()).padStart(2,"0");
+    return `${hh}:${mm}:${ss}`;
+  }
+
+  function log(msg){
+    const p = document.createElement("p");
+    p.className = "logLine";
+    p.innerHTML = `<small>${nowStr()}</small>  ${msg}`;
+    logBox.prepend(p);
+  }
+
+  // Simple beep (WebAudio)
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let ctx = null;
+  function beep(type="click"){
+    try{
+      if(!ctx) ctx = new AudioCtx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+
+      let freq = 520, dur = 0.08;
+      if(type==="ready"){ freq=620; dur=0.11; }
+      if(type==="drop"){ freq=180; dur=0.20; }
+      if(type==="deny"){ freq=120; dur=0.14; }
+      if(type==="alarm"){ freq=860; dur=0.45; }
+
+      o.frequency.value = freq;
+      o.type = "square";
+      g.gain.setValueAtTime(0.001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+
+      o.start();
+      o.stop(ctx.currentTime + dur + 0.02);
+    }catch(e){}
+  }
+
+  function vibrate(ms=35){
+    if (navigator.vibrate) navigator.vibrate(ms);
+  }
+
+  function pulse(el){
+    el.classList.remove("pulse");
+    void el.offsetWidth;
+    el.classList.add("pulse");
+  }
+
+  function setDots(){
+    dotReady.className = "dot " + (isReady ? "good" : "warn");
+    dotDoor.className = "dot " + (doorOpen ? "warn" : "good");
+
+    const recentlyDropped = (Date.now() - lastDropAt) < 1200;
+    dotDrop.className = "dot " + (recentlyDropped ? "red" : "");
+    if(!recentlyDropped) dotDrop.style.background = "#666";
+    else dotDrop.style.background = "var(--red)";
+  }
+
+  function setSignal(state){
+    // state: "red" | "yellow" | "green"
+    lampRed.classList.toggle("on", state==="red");
+    lampYellow.classList.toggle("on", state==="yellow");
+    lampGreen.classList.toggle("on", state==="green");
+
+    if(state==="red"){
+      signalText.textContent = "대기";
+      signalSub.textContent = "파란 버튼을 눌러 READY로 바꾸기";
+    }else if(state==="yellow"){
+      signalText.textContent = "준비중";
+      signalSub.textContent = doorOpen ? "문을 닫아야 드롭 가능" : "곧 드롭 가능!";
+    }else{
+      signalText.textContent = "드롭 가능!";
+      signalSub.textContent = "초록 버튼(DROP)을 눌러봐!";
+    }
+  }
+
+  function updateUI(){
+    // Door UI
+    doorStateText.textContent = doorOpen ? "열림" : "닫힘";
+    doorText.textContent = doorOpen ? "열림" : "닫힘";
+    btnDoor.textContent = doorOpen ? "문 닫기" : "문 열기";
+    door.classList.toggle("open", doorOpen);
+
+    // Mode / lock
+    modeText.textContent = isReady ? "READY" : "NORMAL";
+    btnGreen.disabled = doorOpen || !isReady;
+    btnGreen.style.opacity = btnGreen.disabled ? 0.55 : 1.0;
+    btnGreen.style.cursor = btnGreen.disabled ? "not-allowed" : "pointer";
+
+    // CCTV status
+    if(!camOn){
+      cctvStatus.textContent = "상태: 카메라 OFF";
+    }else if(!isReady){
+      cctvStatus.textContent = "상태: 대기";
+    }else if(doorOpen){
+      cctvStatus.textContent = "상태: 준비(문 열림)";
+    }else{
+      cctvStatus.textContent = "상태: 준비 완료";
+    }
+
+    // Signal rules
+    if(!isReady){
+      setSignal("red");
+    }else{
+      if(doorOpen) setSignal("yellow");
+      else setSignal("green");
+    }
+
+    setDots();
+  }
+
+  // ---------- Camera (Real CCTV) ----------
+  async function startCamera(){
+    if(stream) return;
+
+    // Prefer rear camera on phones if possible
+    const constraints = {
+      audio: false,
+      video: {
+        width: { ideal: 1280 },
+        height:{ ideal: 720 },
+        facingMode: { ideal: "environment" } // rear cam preference
+      }
+    };
+
+    try{
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = stream;
+      camOn = true;
+      cctvMsg.classList.remove("show");
+      btnCamToggle.textContent = "카메라 끄기";
+      log("📷 카메라 ON");
+      updateUI();
+    }catch(err){
+      camOn = false;
+      stream = null;
+      cctvMsg.classList.add("show");
+      btnCamToggle.textContent = "카메라 켜기";
+      log("❌ 카메라 실패: 권한/https 여부 확인");
+      updateUI();
+    }
+  }
+
+  function stopCamera(){
+    if(stream){
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    video.srcObject = null;
+    camOn = false;
+    cctvMsg.classList.add("show");
+    btnCamToggle.textContent = "카메라 켜기";
+    log("📷 카메라 OFF");
+    updateUI();
+  }
+
+  btnCamToggle.addEventListener("click", async () => {
+    vibrate(25);
+    beep("click");
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      log("❌ 이 브라우저는 카메라를 지원하지 않아!");
+      return;
+    }
+    if(camOn) stopCamera();
+    else await startCamera();
+  });
+
+  // ---------- Buttons / Door ----------
+  btnBlue.addEventListener("click", () => {
+    isReady = !isReady;
+    pulse(btnBlue);
+    vibrate(25);
+    beep("ready");
+    log(isReady ? "✅ READY ON (준비 완료!)" : "⏸️ READY OFF (대기 상태)");
+    updateUI();
+  });
+
+  btnGreen.addEventListener("click", () => {
+    if(btnGreen.disabled){
+      pulse(btnGreen);
+      vibrate(40);
+      beep("deny");
+      if(!isReady) log("❌ DROP 불가: 먼저 파란 버튼(READY)을 눌러줘!");
+      else log("❌ DROP 불가: 문이 열려 있어! 문을 닫아야 해.");
+      return;
+    }
+
+    pulse(btnGreen);
+    vibrate(80);
+    beep("drop");
+    lastDropAt = Date.now();
+    log("🟢 DROP 실행! (뚝! 떨어진다!)");
+    cctvStatus.textContent = "상태: DROP!";
+    setSignal("yellow");
+    setDots();
+
+    // Flash effect on CCTV container
+    $("cctvBody").animate([
+      { filter:"brightness(1.0) contrast(1.0)", transform:"scale(1)" },
+      { filter:"brightness(1.25) contrast(1.20)", transform:"scale(1.01)" },
+      { filter:"brightness(1.0) contrast(1.0)", transform:"scale(1)" }
+    ], { duration: 420, easing:"ease-out" });
+
+    // return to normal ready state
+    setTimeout(() => updateUI(), 800);
+  });
+
+  btnDoor.addEventListener("click", () => {
+    doorOpen = !doorOpen;
+    vibrate(30);
+    beep("click");
+    log(doorOpen ? "🚪 문 열림" : "🚪 문 닫힘");
+    updateUI();
+  });
+
+  // ---------- Reset / Alarm ----------
+  btnReset.addEventListener("click", () => {
+    isReady = false;
+    doorOpen = false;
+    lastDropAt = 0;
+    beep("click");
+    vibrate(20);
+    log("🔄 리셋 완료");
+    updateUI();
+  });
+
+  btnAlarm.addEventListener("click", () => {
+    vibrate(120);
+    beep("alarm");
+    log("🚨 경고음!");
+    document.body.animate([
+      { transform:"translateX(0px)" },
+      { transform:"translateX(-6px)" },
+      { transform:"translateX(6px)" },
+      { transform:"translateX(-4px)" },
+      { transform:"translateX(4px)" },
+      { transform:"translateX(0px)" },
+    ], { duration: 420, easing:"ease-in-out" });
+  });
+
+  // ---------- Time ticker ----------
+  setInterval(() => {
+    timeNow.textContent = nowStr();
+  }, 250);
+
+  // ---------- Init ----------
+  log("시작! 먼저 '카메라 켜기'를 눌러서 CCTV를 켜봐 🙂");
+  updateUI();
+
+  // Auto hint for insecure context (http/file)
+  // (카메라는 보통 https 또는 localhost에서만 동작)
+  try{
+    const isSecure = window.isSecureContext;
+    if(!isSecure){
+      log("⚠️ 카메라는 보통 https(보안 연결)에서만 켜져!");
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

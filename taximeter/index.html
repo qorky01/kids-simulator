@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>키즈 택시 미터기 • 오렌지</title>
+<style>
+  :root{
+    --bg1:#ff7a1a;      /* 메인 오렌지 */
+    --bg2:#ffb566;      /* 밝은 오렌지 */
+    --panel:#20140b;
+    --glass:rgba(255,255,255,.08);
+    --ink:#111;
+    --green:#14b866;
+    --card:#fff9f0;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:linear-gradient(160deg,var(--bg1) 0%, var(--bg2) 100%);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Noto Sans KR,sans-serif;
+    color:var(--ink);
+  }
+  .wrap{max-width:840px;margin:0 auto;padding:18px}
+  header{display:flex;justify-content:space-between;align-items:center}
+  h1{margin:0;font-size:22px;color:#23170f}
+  .badge{background:#ffe6c7;border:1px solid rgba(0,0,0,.06);padding:6px 10px;border-radius:999px;font-weight:700}
+  .meter{
+    margin-top:12px;
+    background:linear-gradient(180deg,#fff1df 0%, #ffe7cc 100%);
+    border:1px solid rgba(0,0,0,.12);
+    border-radius:16px; padding:14px;
+    box-shadow:0 24px 50px rgba(0,0,0,.18), inset 0 0 0 2px rgba(255,255,255,.6);
+  }
+
+  /* 레이아웃: 왼쪽 디스플레이, 오른쪽 버튼 */
+  .grid{
+    display:grid; grid-template-columns: 1fr 150px; gap:14px;
+  }
+  @media (max-width:560px){
+    .grid{grid-template-columns: 1fr;}
+  }
+
+  .display{
+    background:#0b0b0b; color:#eafef4;
+    border-radius:14px; padding:12px; border:1px solid #1b1b1b;
+    position:relative; overflow:hidden;
+  }
+  .labels{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .chip{font-size:12px;background:#1c1c1c;border:1px solid #2b2b2b;color:#a8ffcf;padding:4px 8px;border-radius:8px}
+  .fare-row{display:flex;align-items:flex-end;gap:10px}
+  .fare{
+    flex:1;text-align:right;font-weight:800;line-height:1;
+    font-variant-numeric:tabular-nums;letter-spacing:1px;
+    font-size:48px;color:#57f7a2;text-shadow:0 0 16px rgba(20,184,102,.45);
+    transition:transform .08s ease, filter .08s ease;
+  }
+  .fare.tick{transform:scale(1.04); filter:drop-shadow(0 0 6px rgba(20,184,102,.6));}
+  .won{font-size:20px;color:#a8ffd2;opacity:.9;margin-bottom:6px}
+
+  .subs{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .card{flex:1;min-width:140px;background:#101010;border:1px solid #242424;border-radius:10px;padding:10px}
+  .t{font-size:12px;color:#9adfb9}
+  .v{margin-top:4px;font-size:22px;font-variant-numeric:tabular-nums}
+
+  /* 오른쪽 컨트롤 */
+  .controls{display:flex; flex-direction:column; gap:10px;}
+  .btn{
+    padding:12px; border:none;border-radius:12px; font-weight:800;
+    color:#fff; cursor:pointer;
+    box-shadow:0 6px 14px rgba(0,0,0,.15);
+  }
+  .start{background:#16964f}
+  .stop{background:#c24141}
+  .reset{background:#34495e}
+  .row{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .row label{font-size:13px;color:#352719}
+  .grow{flex:1}
+  input[type="range"]{width:100%}
+  input[type="number"]{
+    background:#fff;border:1px solid rgba(0,0,0,.15);border-radius:10px;padding:10px;color:#222
+  }
+
+  /* 패널 펄스 */
+  @keyframes meterPulse {
+    0% { box-shadow: inset 0 0 0 0 rgba(20,184,102,0); }
+    100% { box-shadow: inset 0 0 20px 2px rgba(20,184,102,.15); }
+  }
+  .flash{animation:meterPulse .18s ease}
+
+  /* 시간 숫자 깜빡 */
+  .time.tick{filter:brightness(1.6)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>키즈 택시 미터기</h1>
+      <span class="badge">놀이용 • 오렌지 테마</span>
+    </header>
+
+    <section class="meter">
+      <div class="grid">
+        <!-- 왼쪽: 표시부 -->
+        <div>
+          <div class="display" id="displayBox">
+            <div class="labels">
+              <span class="chip" id="modeChip">주간</span>
+              <span class="chip">기본 <b id="baseFareChip">3,800</b>원</span>
+              <span class="chip">거리+시간 가산</span>
+            </div>
+            <div class="fare-row">
+              <div id="fare" class="fare">3,800</div>
+              <div class="won">원</div>
+            </div>
+            <div class="subs">
+              <div class="card">
+                <div class="t">거리</div>
+                <div class="v"><span id="dist">0.000</span> km</div>
+              </div>
+              <div class="card">
+                <div class="t">시간</div>
+                <div class="v"><span id="time" class="time">00:00</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <label>속도 (km/h)</label>
+            <div class="grow"><input id="speed" type="range" min="0" max="80" value="30"></div>
+            <b id="speedVal">30</b>
+          </div>
+
+          <div class="row">
+            <label>기본요금</label><input id="baseFare" type="number" value="3800" step="50" style="width:110px">
+            <label>거리증가(원/100m)</label><input id="stepFare" type="number" value="100" step="10" style="width:120px">
+            <label>초당(원)</label><input id="perSecondFare" type="number" value="50" step="10" style="width:100px">
+          </div>
+        </div>
+
+        <!-- 오른쪽: 버튼 -->
+        <div class="controls">
+          <button class="btn start" id="btnStart">출발</button>
+          <button class="btn stop" id="btnStop">정지</button>
+          <button class="btn reset" id="btnReset">리셋</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const fareEl=$("fare"), distEl=$("dist"), timeEl=$("time"), speedEl=$("speed");
+  const speedVal=$("speedVal"), baseFareInp=$("baseFare"), stepFareInp=$("stepFare"), perSecInp=$("perSecondFare");
+  const displayBox=$("displayBox"), baseFareChip=$("baseFareChip");
+
+  const state = {
+    running:false,
+    baseFare:3800,
+    fare:3800,
+    perMeters:100,
+    stepFare:100,        // 100m마다 +100원
+    perSecondFare:50,    // 초당 +50원
+    distanceM:0,
+    timeSec:0,
+    speedKmh:30,
+    last:performance.now(),
+    a1:0, // 초 누적
+    a2:0, // 미터 누적
+  };
+
+  function fmt(n){return n.toLocaleString('ko-KR');}
+  function render(tickFare=false, tickTime=false){
+    fareEl.textContent = fmt(state.fare);
+    if(tickFare){ fareEl.classList.add('tick'); displayBox.classList.add('flash'); setTimeout(()=>{ fareEl.classList.remove('tick'); displayBox.classList.remove('flash'); },120); }
+    distEl.textContent = (state.distanceM/1000).toFixed(3);
+    const mm = String(Math.floor(state.timeSec/60)).padStart(2,"0");
+    const ss = String(state.timeSec%60).padStart(2,"0");
+    timeEl.textContent = `${mm}:${ss}`;
+    if(tickTime){ timeEl.classList.add('tick'); setTimeout(()=>timeEl.classList.remove('tick'),120); }
+    speedVal.textContent = String(state.speedKmh);
+    baseFareChip.textContent = fmt(state.baseFare);
+  }
+
+  function reset(){
+    state.baseFare = Number(baseFareInp.value)||0;
+    state.fare = state.baseFare;
+    state.stepFare = Number(stepFareInp.value)||100;
+    state.perSecondFare = Number(perSecInp.value)||0;
+    state.distanceM = 0; state.timeSec=0; state.a1=0; state.a2=0;
+    state.last = performance.now();
+    render();
+  }
+
+  function loop(now){
+    const dt = (now - state.last)/1000; state.last = now;
+    if(state.running){
+      // 시간 기반 가산
+      state.a1 += dt;
+      let tickedTime=false, tickedFare=false;
+      while(state.a1 >= 1){
+        state.a1 -= 1;
+        state.timeSec += 1; tickedTime=true;
+        if(state.perSecondFare>0){ state.fare += state.perSecondFare; tickedFare=true; }
+      }
+      // 속도 -> 거리 증가
+      const ms = (state.speedKmh*1000)/3600;
+      const moved = ms*dt;
+      state.distanceM += moved;
+      state.a2 += moved;
+      while(state.a2 >= 100){ // 100m 단위
+        state.a2 -= 100;
+        state.fare += state.stepFare; tickedFare=true;
+      }
+      render(tickedFare, tickedTime);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // 이벤트
+  $("btnStart").onclick=()=>{ if(!state.running){ state.running=true; state.last=performance.now(); } };
+  $("btnStop").onclick=()=>{ state.running=false; };
+  $("btnReset").onclick=()=>{ state.running=false; reset(); };
+  speedEl.oninput=e=>{ state.speedKmh = Number(e.target.value)||0; speedVal.textContent=String(state.speedKmh); };
+  baseFareInp.onchange=reset; stepFareInp.onchange=reset; perSecInp.onchange=reset;
+
+  // 시작
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

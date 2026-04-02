@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>키즈 시뮬레이터</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --c1: #ff6b6b;
+      --c2: #ffd93d;
+      --c3: #6bcb77;
+      --c4: #4d96ff;
+      --c5: #ff922b;
+      --c6: #cc5de8;
+      --c7: #20c997;
+      --c8: #f06595;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* 배경 패턴 */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(77,150,255,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(108,203,119,0.06) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 헤더 */
+    .header {
+      text-align: center;
+      padding: 24px 0 20px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #4d96ff, #6bcb77);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+
+    .logo-text {
+      font-family: 'Nunito', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #4d96ff, #6bcb77);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-sub {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* 섹션 레이블 */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin: 24px 0 12px 2px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-free { background: rgba(107,203,119,0.2); color: #6bcb77; }
+    .badge-lock { background: rgba(255,217,61,0.2); color: #ffd93d; }
+
+    /* 앱 그리드 */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* 앱 카드 */
+    .app-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px 14px 16px;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .app-card:active { transform: scale(0.95); }
+
+    .app-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 20px 20px 0 0;
+    }
+
+    .app-card[data-color="c1"]::before { background: var(--c1); }
+    .app-card[data-color="c2"]::before { background: var(--c2); }
+    .app-card[data-color="c3"]::before { background: var(--c3); }
+    .app-card[data-color="c4"]::before { background: var(--c4); }
+    .app-card[data-color="c5"]::before { background: var(--c5); }
+    .app-card[data-color="c6"]::before { background: var(--c6); }
+    .app-card[data-color="c7"]::before { background: var(--c7); }
+    .app-card[data-color="c8"]::before { background: var(--c8); }
+
+    .app-card[data-color="c1"] { border-color: rgba(255,107,107,0.3); }
+    .app-card[data-color="c2"] { border-color: rgba(255,217,61,0.3); }
+    .app-card[data-color="c3"] { border-color: rgba(107,203,119,0.3); }
+    .app-card[data-color="c4"] { border-color: rgba(77,150,255,0.3); }
+    .app-card[data-color="c5"] { border-color: rgba(255,146,43,0.3); }
+    .app-card[data-color="c6"] { border-color: rgba(204,93,232,0.3); }
+    .app-card[data-color="c7"] { border-color: rgba(32,201,151,0.3); }
+    .app-card[data-color="c8"] { border-color: rgba(240,101,149,0.3); }
+
+    .app-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 12px;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .app-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .app-desc {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .lock-badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 22px;
+      height: 22px;
+      background: rgba(255,217,61,0.15);
+      border: 1px solid rgba(255,217,61,0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    /* 전체팩 배너 */
+    .pack-banner {
+      margin-top: 24px;
+      background: linear-gradient(135deg, rgba(77,150,255,0.1), rgba(107,203,119,0.1));
+      border: 1px solid rgba(77,150,255,0.3);
+      border-radius: 20px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .pack-title {
+      font-family: 'Nunito', sans-serif;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .pack-desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .pack-price {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #4d96ff, #6bcb77);
+      color: white;
+      font-family: 'Nunito', sans-serif;
+      font-size: 16px;
+      font-weight: 900;
+      padding: 12px 28px;
+      border-radius: 30px;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* iframe 오버레이 */
+    #app-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+    }
+
+    #app-overlay.active { display: flex; }
+
+    .overlay-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      flex-shrink: 0;
+      min-height: 52px;
+    }
+
+    .back-btn {
+      width: 36px;
+      height: 36px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      flex-shrink: 0;
+      color: var(--text);
+    }
+
+    .overlay-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    #app-frame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #000;
+    }
+
+    /* 애니메이션 */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .app-card {
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .app-card:nth-child(1) { animation-delay: 0.05s; }
+    .app-card:nth-child(2) { animation-delay: 0.10s; }
+    .app-card:nth-child(3) { animation-delay: 0.15s; }
+    .app-card:nth-child(4) { animation-delay: 0.20s; }
+    .app-card:nth-child(5) { animation-delay: 0.25s; }
+    .app-card:nth-child(6) { animation-delay: 0.30s; }
+    .app-card:nth-child(7) { animation-delay: 0.35s; }
+    .app-card:nth-child(8) { animation-delay: 0.40s; }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🎮</div>
+      <div class="logo-text">키즈 시뮬레이터</div>
+    </div>
+    <div class="header-sub">진짜처럼 조종해보자!</div>
+  </div>
+
+  <div class="section-label">
+    무료 체험 <span class="badge badge-free">FREE</span>
+  </div>
+
+  <div class="grid" id="free-grid">
+    <div class="app-card" data-color="c1" data-src="elevator/index.html" data-title="엘리베이터 마스터">
+      <div class="app-icon">🛗</div>
+      <div class="app-name">엘리베이터<br>마스터</div>
+      <div class="app-desc">점검·수리 모드<br>엔지니어 인증</div>
+    </div>
+    <div class="app-card" data-color="c4" data-src="taximeter/index.html" data-title="택시 미터기">
+      <div class="app-icon">🚕</div>
+      <div class="app-name">택시<br>미터기</div>
+      <div class="app-desc">실제 요금 계산<br>속도·거리 측정</div>
+    </div>
+  </div>
+
+  <div class="section-label">
+    전체 팩 <span class="badge badge-lock">PACK</span>
+  </div>
+
+  <div class="grid" id="pack-grid">
+    <div class="app-card" data-color="c2" data-src="police/index.html" data-title="슈퍼 경찰 시뮬레이터">
+      <div class="app-icon">🚔</div>
+      <div class="app-name">슈퍼 경찰<br>시뮬레이터</div>
+      <div class="app-desc">경광등·사이렌<br>교통 통제</div>
+      <div class="lock-badge">🔒</div>
+    </div>
+    <div class="app-card" data-color="c3" data-src="train/index.html" data-title="AREX 기관실">
+      <div class="app-icon">🚆</div>
+      <div class="app-name">AREX<br>기관실</div>
+      <div class="app-desc">공항철도 노선<br>TRS 무전기</div>
+      <div class="lock-badge">🔒</div>
+    </div>
+    <div class="app-card" data-color="c5" data-src="remotecontrol/index.html" data-title="리프트 조종기">
+      <div class="app-icon">🏗️</div>
+      <div class="app-name">리프트<br>조종기</div>
+      <div class="app-desc">크레인 컨트롤<br>긴급 정지</div>
+      <div class="lock-badge">🔒</div>
+    </div>
+    <div class="app-card" data-color="c7" data-src="airportsubway/index.html" data-title="공항철도 개찰구">
+      <div class="app-icon">🎫</div>
+      <div class="app-name">공항철도<br>개찰구</div>
+      <div class="app-desc">얼굴인식·QR<br>교통카드</div>
+      <div class="lock-badge">🔒</div>
+    </div>
+    <div class="app-card" data-color="c8" data-src="slidecontrol/index.html" data-title="슬라이드 컨트롤">
+      <div class="app-icon">🎢</div>
+      <div class="app-name">슬라이드<br>컨트롤</div>
+      <div class="app-desc">CCTV 실시간<br>신호등 제어</div>
+      <div class="lock-badge">🔒</div>
+    </div>
+    <div class="app-card" data-color="c6" data-src="secom/index.html" data-title="보안 시스템">
+      <div class="app-icon">🔐</div>
+      <div class="app-name">보안<br>시스템</div>
+      <div class="app-desc">지문인식<br>경비 설정</div>
+      <div class="lock-badge">🔒</div>
+    </div>
+  </div>
+
+  <div class="pack-banner">
+    <div class="pack-title">✨ 전체 팩 열기</div>
+    <div class="pack-desc">6개 시뮬레이터를 전부 즐겨보세요<br>한 번 구매로 영원히!</div>
+    <button class="pack-price">🔓 2,900원으로 전체 열기</button>
+  </div>
+</div>
+
+<!-- 앱 실행 오버레이 -->
+<div id="app-overlay">
+  <div class="overlay-header">
+    <div class="back-btn" id="back-btn">←</div>
+    <div class="overlay-title" id="overlay-title"></div>
+  </div>
+  <iframe
+    id="app-frame"
+    allow="camera; microphone; autoplay"
+    allowfullscreen
+  ></iframe>
+</div>
+
+<script>
+  // 앱 카드 클릭 → iframe으로 열기
+  document.querySelectorAll('.app-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const src = card.dataset.src;
+      const title = card.dataset.title;
+      if (!src) return;
+
+      document.getElementById('app-frame').src = src;
+      document.getElementById('overlay-title').textContent = title;
+      document.getElementById('app-overlay').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  // 뒤로가기 버튼
+  document.getElementById('back-btn').addEventListener('click', () => {
+    document.getElementById('app-frame').src = '';
+    document.getElementById('app-overlay').classList.remove('active');
+    document.body.style.overflow = '';
+  });
+
+  // 안드로이드 물리 뒤로가기 버튼 대응
+  window.addEventListener('popstate', () => {
+    const overlay = document.getElementById('app-overlay');
+    if (overlay.classList.contains('active')) {
+      document.getElementById('app-frame').src = '';
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  });
+
+  // 오버레이 열릴 때 history 추가 (뒤로가기 대응)
+  document.querySelectorAll('.app-card').forEach(card => {
+    card.addEventListener('click', () => {
+      history.pushState({ overlay: true }, '');
+    });
+  });
+
+  // PWA 서비스워커 등록
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .catch(err => console.log('SW 등록 실패:', err));
+    });
+  }
+</script>
+</body>
+</html>
