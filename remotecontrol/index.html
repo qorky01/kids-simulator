@@ -5,300 +5,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>리프트 조종기</title>
     <style>
-        :root {
-            --bg-yellow: #f4c242;
-            --border-yellow: #d4a328;
-            --btn-black: #222;
-            --btn-red: #8b0000;
-            --btn-green: #2d5a27;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-            font-family: 'Arial Black', sans-serif;
-            touch-action: none;
-        }
-
-        .remote-body {
-            width: 340px;
-            height: 760px;
-            background: linear-gradient(145deg, #fdd835, #f4c242);
-            border-radius: 45px;
-            border: 5px solid var(--border-yellow);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,255,255,0.5);
-            box-sizing: border-box;
-        }
-
-        .hazard-stripe {
-            width: 100%;
-            height: 40px;
-            background: repeating-linear-gradient(45deg, #111, #111 20px, #fdd835 20px, #fdd835 40px);
-            margin-top: 60px;
-            border-top: 2px solid #333;
-            border-bottom: 2px solid #333;
-        }
-
-        .screw {
-            width: 18px;
-            height: 18px;
-            background: radial-gradient(circle at 30% 30%, #bbb, #555);
-            border-radius: 50%;
-            position: absolute;
-            box-shadow: 2px 2px 4px rgba(0,0,0,0.4);
-        }
-        .s-tl { top: 20px; left: 25px; }
-        .s-tr { top: 20px; right: 25px; }
-        .s-bl { bottom: 20px; left: 25px; }
-        .s-br { bottom: 20px; right: 25px; }
-
-        .button-stack {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-evenly;
-            align-items: center;
-            width: 100%;
-            padding: 20px 0 40px 0;
-        }
-
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-outer {
-            width: 110px;
-            height: 110px;
-            background: #111;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 8px 0 #000;
-        }
-
-        .btn-inner {
-            width: 95px;
-            height: 95px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            transition: transform 0.05s;
-            box-shadow: inset 0 4px 8px rgba(255,255,255,0.3);
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .btn-inner:active {
-            transform: translateY(6px);
-            box-shadow: inset 0 8px 12px rgba(0,0,0,0.6);
-        }
-
-        .led-hole {
-            width: 8px;
-            height: 8px;
-            background: #000;
-            border-radius: 50%;
-            margin-bottom: 5px;
-            transition: background 0.2s;
-        }
-
-        .black { background: radial-gradient(circle, #555, #111); color: white; }
-        .red { background: radial-gradient(circle, #b22222, #600); color: white; }
-        .green { background: radial-gradient(circle, #4caf50, #1b3d1d); color: white; }
-
-        .active-green { background: #0f0 !important; box-shadow: 0 0 15px #0f0 !important; }
-        .active-red { background: #f00 !important; box-shadow: 0 0 15px #f00 !important; }
-
-        .icon { font-size: 40px; }
-        .stop-text { font-size: 26px; font-weight: 900; }
-        .label { font-size: 16px; color: #331; font-weight: 900; }
-
+        body{margin:0;padding:0;background:#000;display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;overflow:hidden;font-family:Arial Black,sans-serif;touch-action:none}
+        .remote-body{width:340px;height:760px;background:linear-gradient(145deg,#fdd835,#f4c242);border-radius:45px;border:5px solid #d4a328;position:relative;display:flex;flex-direction:column;align-items:center;box-shadow:0 20px 50px rgba(0,0,0,.8),inset 0 0 15px rgba(255,255,255,.5);box-sizing:border-box}
+        .hazard-stripe{width:100%;height:40px;background:repeating-linear-gradient(45deg,#111,#111 20px,#fdd835 20px,#fdd835 40px);margin-top:60px;border-top:2px solid #333;border-bottom:2px solid #333}
+        .screw{width:18px;height:18px;background:radial-gradient(circle at 30% 30%,#bbb,#555);border-radius:50%;position:absolute;box-shadow:2px 2px 4px rgba(0,0,0,.4)}
+        .s-tl{top:20px;left:25px}.s-tr{top:20px;right:25px}.s-bl{bottom:20px;left:25px}.s-br{bottom:20px;right:25px}
+        .button-stack{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;align-items:center;width:100%;padding:20px 0 40px}
+        .btn-group{display:flex;flex-direction:column;align-items:center;gap:8px}
+        .btn-outer{width:110px;height:110px;background:#111;border-radius:50%;display:flex;justify-content:center;align-items:center;box-shadow:0 8px 0 #000}
+        .btn-inner{width:95px;height:95px;border-radius:50%;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;transition:transform .05s;box-shadow:inset 0 4px 8px rgba(255,255,255,.3);-webkit-tap-highlight-color:transparent}
+        .btn-inner:active{transform:translateY(6px);box-shadow:inset 0 8px 12px rgba(0,0,0,.6)}
+        .led-hole{width:8px;height:8px;background:#000;border-radius:50%;margin-bottom:5px;transition:background .2s}
+        .black{background:radial-gradient(circle,#555,#111);color:#fff}
+        .red{background:radial-gradient(circle,#b22222,#600);color:#fff}
+        .green{background:radial-gradient(circle,#4caf50,#1b3d1d);color:#fff}
+        .active-green{background:#0f0!important;box-shadow:0 0 15px #0f0!important}
+        .active-red{background:#f00!important;box-shadow:0 0 15px #f00!important}
+        .icon{font-size:40px}.stop-text{font-size:26px;font-weight:900}.label{font-size:16px;color:#331;font-weight:900}
     </style>
 </head>
-<body onclick="wakeUpEngines()"> <!-- 중요한 부분: 첫 터치 시 모든 엔진 깨움 -->
-
+<body>
 <div class="remote-body">
     <div class="screw s-tl"></div><div class="screw s-tr"></div>
     <div class="screw s-bl"></div><div class="screw s-br"></div>
     <div class="hazard-stripe"></div>
-
     <div class="button-stack">
         <div class="btn-group">
             <div class="btn-outer">
                 <button class="btn-inner black" onmousedown="playEngine(5)" ontouchstart="playEngine(5)">
-                    <div class="led-hole" id="l1"></div>
-                    <span class="icon">▲</span>
+                    <div class="led-hole" id="l1"></div><span class="icon">&#9650;</span>
                 </button>
             </div>
             <div class="label">LIFT UP</div>
         </div>
-
         <div class="btn-group">
             <div class="btn-outer">
                 <button class="btn-inner black" onmousedown="playEngine(5)" ontouchstart="playEngine(5)">
-                    <div class="led-hole" id="l2"></div>
-                    <span class="icon">▼</span>
+                    <div class="led-hole" id="l2"></div><span class="icon">&#9660;</span>
                 </button>
             </div>
             <div class="label">LIFT DOWN</div>
         </div>
-
         <div class="btn-group">
-            <div class="btn-outer" style="background: #400;">
+            <div class="btn-outer" style="background:#400">
                 <button class="btn-inner red" onclick="toggleSiren()">
-                    <div class="led-hole" id="l3"></div>
-                    <span class="stop-text">STOP</span>
+                    <div class="led-hole" id="l3"></div><span class="stop-text">STOP</span>
                 </button>
             </div>
             <div class="label">EMERGENCY</div>
         </div>
-
         <div class="btn-group">
-            <div class="btn-outer" style="background: #131;">
+            <div class="btn-outer" style="background:#131">
                 <button class="btn-inner green" onclick="playCall()">
-                    <div class="led-hole" id="l4"></div>
-                    <span class="icon">📞</span>
+                    <div class="led-hole" id="l4"></div><span class="icon">&#128222;</span>
                 </button>
             </div>
             <div class="label">CALL</div>
         </div>
     </div>
 </div>
-
 <script>
-    let audioCtx = null;
-    let isEmergency = false;
-    let sirenInterval = null;
-    let synth = window.speechSynthesis;
-
-    // 사파리 엔진 깨우기 (매우 중요)
-    function wakeUpEngines() {
-        // 1. Web Audio API 깨우기
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-        
-        // 2. TTS 엔진 깨우기 (빈 소리 한 번 내기)
-        const silentUtterance = new SpeechSynthesisUtterance("");
-        synth.speak(silentUtterance);
-        
-        // 한 번 실행 후 이벤트 제거 (성능 최적화)
-        document.body.removeAttribute('onclick');
-    }
-
-    function playEngine(duration) {
-        if (!audioCtx || isEmergency) return;
-        
-        document.getElementById('l1').classList.add('active-green');
-        document.getElementById('l2').classList.add('active-green');
-
-        const now = audioCtx.currentTime;
-        const master = audioCtx.createGain();
-        master.gain.value = 1.8;
-
-        const layers = [
-            { f: 45, t: 'sawtooth', g: 0.7 },
-            { f: 90, t: 'square', g: 0.4 },
-            { f: 150, t: 'sawtooth', g: 0.3 }
-        ];
-
-        layers.forEach(l => {
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.type = l.t;
-            o.frequency.setValueAtTime(l.f, now);
-            g.gain.setValueAtTime(l.g, now);
-            g.gain.exponentialRampToValueAtTime(0.01, now + duration);
-            o.connect(g).connect(master).connect(audioCtx.destination);
-            o.start(now);
-            o.stop(now + duration);
-        });
-
-        setTimeout(() => {
-            document.getElementById('l1').classList.remove('active-green');
-            document.getElementById('l2').classList.remove('active-green');
-        }, duration * 1000);
-    }
-
-    function toggleSiren() {
-        if (!audioCtx) wakeUpEngines();
-        const led = document.getElementById('l3');
-        if (isEmergency) {
-            isEmergency = false;
-            led.classList.remove('active-red');
-            clearInterval(sirenInterval);
-        } else {
-            isEmergency = true;
-            led.classList.add('active-red');
-            sirenInterval = setInterval(() => {
-                const o = audioCtx.createOscillator();
-                const g = audioCtx.createGain();
-                o.frequency.setValueAtTime(500, audioCtx.currentTime);
-                o.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.4);
-                g.gain.value = 0.5;
-                o.connect(g).connect(audioCtx.destination);
-                o.start(); o.stop(audioCtx.currentTime + 0.5);
-            }, 600);
-        }
-    }
-
-    // [사파리 대응 핵심 수정] 전화 연결 기능
-    function playCall() {
-        if (!audioCtx) wakeUpEngines();
-        const led = document.getElementById('l4');
-        led.classList.add('active-green');
-        
-        // 1. 안내 멘트 준비 (즉시 실행을 위해 예약)
-        const utterance = new SpeechSynthesisUtterance("전화를 연결하고 있습니다. 잠시만 기다려 주십시오.");
-        utterance.lang = 'ko-KR';
-        utterance.volume = 1.0;
-        utterance.rate = 1.0;
-
-        // 2. 연결 신호음 (Beep) 재생
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.frequency.setValueAtTime(400, audioCtx.currentTime);
-        g.gain.value = 0.4;
-        o.connect(g).connect(audioCtx.destination);
-        o.start();
-        o.stop(audioCtx.currentTime + 1.0);
-
-        // 3. 사파리는 클릭 이벤트 직후에 speak()를 호출해야만 재생을 허용합니다.
-        // 따라서 setTimeout을 0.1초 정도로 아주 짧게 하거나 즉시 호출해야 합니다.
-        synth.cancel(); // 이전 멘트 취소
-        
-        // 약간의 Beep 소리 후 멘트 시작 (사파리 허용 범위 내)
-        setTimeout(() => {
-            synth.speak(utterance);
-        }, 300);
-
-        utterance.onend = () => {
-            led.classList.remove('active-green');
-        };
-    }
-</script>
-
+    var audioCtx=null,isEmergency=false,sirenInterval=null,synth=window.speechSynthesis;
+    function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();return audioCtx;}
+    function playEngine(duration){var ctx=getAudio();if(isEmergency)return;document.getElementById("l1").classList.add("active-green");document.getElementById("l2").classList.add("active-green");var now=ctx.currentTime,master=ctx.createGain();master.gain.value=1.8;[{f:45,t:"sawtooth",g:.7},{f:90,t:"square",g:.4},{f:150,t:"sawtooth",g:.3}].forEach(function(l){var o=ctx.createOscillator(),g=ctx.createGain();o.type=l.t;o.frequency.setValueAtTime(l.f,now);g.gain.setValueAtTime(l.g,now);g.gain.exponentialRampToValueAtTime(.01,now+duration);o.connect(g).connect(master).connect(ctx.destination);o.start(now);o.stop(now+duration);});setTimeout(function(){document.getElementById("l1").classList.remove("active-green");document.getElementById("l2").classList.remove("active-green");},duration*1000);}
+    function toggleSiren(){var ctx=getAudio(),led=document.getElementById("l3");if(isEmergency){isEmergency=false;led.classList.remove("active-red");clearInterval(sirenInterval);}else{isEmergency=true;led.classList.add("active-red");sirenInterval=setInterval(function(){var o=ctx.createOscillator(),g=ctx.createGain();o.frequency.setValueAtTime(500,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(1000,ctx.currentTime+.4);g.gain.value=.5;o.connect(g).connect(ctx.destination);o.start();o.stop(ctx.currentTime+.5);},600);}}
+    function playCall(){var ctx=getAudio(),led=document.getElementById("l4");led.classList.add("active-green");var u=new SpeechSynthesisUtterance("전화를 연결하고 있습니다. 잠시만 기다려 주십시오.");u.lang="ko-KR";var o=ctx.createOscillator(),g=ctx.createGain();o.frequency.setValueAtTime(400,ctx.currentTime);g.gain.value=.4;o.connect(g).connect(ctx.destination);o.start();o.stop(ctx.currentTime+1);synth.cancel();setTimeout(function(){synth.speak(u);},300);u.onend=function(){led.classList.remove("active-green");};}
+<\/script>
 </body>
 </html>
