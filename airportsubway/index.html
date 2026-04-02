@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>공항철도 개찰구 앱 - 얼굴 인식</title>
-  <meta name="description" content="공항철도 개찰구 체험용 웹앱. 얼굴 감지, QR 승차권, 교통카드, 모바일패스 모드를 지원합니다." />
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; background: linear-gradient(to bottom, #eaf6ff, #ffffff, #edf2f7); min-height: 100vh; color: #0f172a; }
@@ -15,16 +15,31 @@
     .title { font-size: 20px; font-weight: 800; line-height: 1.2; }
     .sub { font-size: 12px; color: #64748b; margin-top: 2px; }
     .sound-btn { width: 46px; height: 46px; border-radius: 16px; border: 1px solid #cbd5e1; background: white; font-size: 20px; cursor: pointer; }
-    .card { background: white; border-radius: 28px; padding: 16px; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.10); }
+    .card { background: white; border-radius: 28px; padding: 16px; box-shadow: 0 18px 40px rgba(15,23,42,0.10); }
     .status-bar { background: #0f172a; color: white; border-radius: 18px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
     .status-small { font-size: 12px; color: #cbd5e1; }
     .status-big { font-size: 15px; font-weight: 700; margin-top: 3px; }
     .arex { border-radius: 999px; padding: 7px 12px; background: rgba(255,255,255,0.1); font-size: 12px; font-weight: 700; }
-    .camera-box { position: relative; margin-top: 16px; border-radius: 24px; overflow: hidden; background: #0f172a; aspect-ratio: 4 / 3; border: 1px solid #cbd5e1; }
+    .camera-box { position: relative; margin-top: 16px; border-radius: 24px; overflow: hidden; background: #0f172a; aspect-ratio: 4/3; border: 1px solid #cbd5e1; }
     video { width: 100%; height: 100%; object-fit: cover; display: block; background: #0f172a; transform: scaleX(-1); }
-    canvas.overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-    .camera-hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: rgba(15,23,42,0.6); color: white; font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 999px; white-space: nowrap; }
-    .camera-status { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: rgba(255,255,255,0.92); color: #0f172a; font-size: 12px; font-weight: 800; padding: 8px 12px; border-radius: 999px; white-space: nowrap; }
+    canvas.overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; transform: scaleX(-1); }
+    .camera-hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: rgba(15,23,42,0.6); color: white; font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 999px; white-space: nowrap; z-index: 2; }
+    .camera-status { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: rgba(255,255,255,0.92); color: #0f172a; font-size: 12px; font-weight: 800; padding: 8px 12px; border-radius: 999px; white-space: nowrap; z-index: 2; }
+
+    /* 모델 로딩 오버레이 */
+    .model-loading {
+      position: absolute; inset: 0; background: rgba(15,23,42,0.85);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: white; font-size: 13px; font-weight: 700; gap: 12px; z-index: 5;
+      border-radius: 24px;
+    }
+    .model-loading.hidden { display: none; }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     .gate-box { position: relative; margin: 16px auto 0; height: 170px; max-width: 290px; border-radius: 26px; background: #f1f5f9; overflow: hidden; border: 1px solid #e2e8f0; }
     .gate-title { position: absolute; top: 10px; width: 100%; text-align: center; color: #64748b; font-size: 12px; font-weight: 600; }
     .pillar { position: absolute; top: 44px; width: 50px; height: 92px; border-radius: 18px; background: #1e293b; box-shadow: 0 10px 18px rgba(15,23,42,0.18); }
@@ -36,13 +51,13 @@
     .gate-box.open .wing.left { transform: translateX(-30px); opacity: .35; }
     .gate-box.open .wing.right { transform: translateX(30px); opacity: .35; }
     .center-badge { position: absolute; left: 50%; top: 71px; transform: translateX(-50%); background: rgba(255,255,255,0.88); border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 700; color: #334155; animation: pulse 1.2s infinite; white-space: nowrap; }
-    @keyframes pulse { 0% { opacity: .55; } 50% { opacity: 1; } 100% { opacity: .55; } }
+    @keyframes pulse { 0%{opacity:.55} 50%{opacity:1} 100%{opacity:.55} }
     .gate-foot { position: absolute; bottom: 8px; width: 100%; text-align: center; font-size: 11px; color: #64748b; }
     .section { margin-top: 16px; border-radius: 18px; background: #f8fafc; padding: 12px; }
     .section-title { font-size: 12px; font-weight: 800; color: #64748b; margin-bottom: 8px; }
-    .mode-grid, .stats-grid, .action-grid { display: grid; gap: 10px; }
-    .mode-grid { grid-template-columns: repeat(4, 1fr); }
-    .stats-grid, .action-grid { grid-template-columns: repeat(2, 1fr); }
+    .mode-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+    .action-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
     .mode-btn { border: 1px solid #e2e8f0; background: white; border-radius: 18px; padding: 12px 6px; min-height: 84px; cursor: pointer; color: #475569; font-weight: 700; font-size: 11px; }
     .mode-btn .emoji { font-size: 22px; display: block; margin-bottom: 6px; }
     .mode-btn.active { border-color: #38bdf8; background: #f0f9ff; color: #0369a1; box-shadow: 0 8px 16px rgba(14,165,233,0.08); }
@@ -52,6 +67,10 @@
     .stat-label { color: #64748b; font-size: 12px; }
     .stat-value { margin-top: 5px; font-size: 24px; font-weight: 800; }
     .stat-foot { margin-top: 4px; font-size: 11px; color: #64748b; }
+
+    /* 충전 버튼 */
+    .charge-btn { margin-top: 8px; width: 100%; padding: 10px; border: 1px solid #bfdbfe; background: #eff6ff; border-radius: 12px; font-size: 13px; font-weight: 700; color: #1d4ed8; cursor: pointer; }
+
     .message { margin-top: 16px; border-radius: 18px; border: 1px dashed #cbd5e1; background: white; padding: 16px; text-align: center; font-weight: 700; font-size: 15px; color: #475569; min-height: 58px; display: flex; align-items: center; justify-content: center; }
     .message.success { color: #059669; }
     .message.fail { color: #e11d48; }
@@ -72,7 +91,7 @@
           <div class="sub">얼굴 인식 포함 체험용 시뮬레이터</div>
         </div>
       </div>
-      <button id="soundBtn" class="sound-btn" aria-label="사운드 켜기 끄기">🔊</button>
+      <button id="soundBtn" class="sound-btn">🔊</button>
     </div>
 
     <div class="card">
@@ -89,6 +108,10 @@
         <canvas id="overlay" class="overlay"></canvas>
         <div class="camera-hint">정면을 바라보면 얼굴 감지</div>
         <div id="cameraStatus" class="camera-status">카메라 시작 전</div>
+        <div class="model-loading hidden" id="modelLoading">
+          <div class="spinner"></div>
+          <div>얼굴인식 모델 불러오는 중...</div>
+        </div>
       </div>
 
       <div id="gateBox" class="gate-box">
@@ -104,19 +127,20 @@
       <div class="section">
         <div class="section-title">이용 방식 선택</div>
         <div class="mode-grid">
-          <button class="mode-btn active" data-mode="face" data-label="얼굴인식"><span class="emoji">🙂</span>얼굴인식</button>
-          <button class="mode-btn" data-mode="qr" data-label="QR 승차권"><span class="emoji">🎫</span>QR 승차권</button>
-          <button class="mode-btn" data-mode="tmoney" data-label="교통카드"><span class="emoji">💳</span>교통카드</button>
-          <button class="mode-btn" data-mode="mobile" data-label="모바일패스"><span class="emoji">📱</span>모바일패스</button>
+          <button class="mode-btn active" data-mode="face"><span class="emoji">🙂</span>얼굴인식</button>
+          <button class="mode-btn" data-mode="qr"><span class="emoji">🎫</span>QR 승차권</button>
+          <button class="mode-btn" data-mode="tmoney"><span class="emoji">💳</span>교통카드</button>
+          <button class="mode-btn" data-mode="mobile"><span class="emoji">📱</span>모바일패스</button>
         </div>
       </div>
 
-      <div class="section" style="background:transparent; padding:0; margin-top:16px;">
+      <div class="section" style="background:transparent;padding:0;margin-top:16px;">
         <div class="stats-grid">
           <div class="stat blue">
             <div class="stat-label">잔액</div>
-            <div id="balanceText" class="stat-value">₩4,250</div>
+            <div id="balanceText" class="stat-value">₩50,000</div>
             <div class="stat-foot">교통카드 모드에서 차감</div>
+            <button class="charge-btn" id="chargeBtn">💳 충전 (+10,000원)</button>
           </div>
           <div class="stat green">
             <div class="stat-label">통과 횟수</div>
@@ -135,25 +159,30 @@
 
       <div class="tips">
         <strong>안내</strong>
-        • 첫 터치 때 오디오를 활성화합니다.<br>
-        • 아이폰/아이패드에서는 무음 모드나 브라우저 정책 때문에 첫 사용자 동작이 꼭 필요할 수 있습니다.<br>
-        • 얼굴 인식은 특정 사람 신원 인증이 아니라 얼굴 존재 감지입니다.
+        • 얼굴인식 모드: 카메라에 얼굴을 비추면 자동으로 게이트가 열려요.<br>
+        • 교통카드 모드: 태그 버튼을 누르면 1,450원이 차감돼요.<br>
+        • 잔액이 부족하면 충전 버튼으로 충전하세요.<br>
+        • 얼굴 인식은 신원 확인이 아닌 얼굴 감지예요.
       </div>
     </div>
   </div>
 
   <script>
+    const FARE = 1450;
+    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
+
     let mode = "face";
     let soundOn = true;
-    let balance = 4250;
+    let balance = 50000;
     let tripCount = 0;
     let resetTimer = null;
     let stream = null;
     let detectTimer = null;
     let lastOpenAt = 0;
-    let faceDetector = null;
     let audioCtx = null;
     let audioUnlocked = false;
+    let modelsLoaded = false;
+    let isDetecting = false;
 
     const soundBtn = document.getElementById("soundBtn");
     const gateBox = document.getElementById("gateBox");
@@ -166,6 +195,7 @@
     const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
     const cameraStatus = document.getElementById("cameraStatus");
+    const modelLoading = document.getElementById("modelLoading");
     const ctx = overlay.getContext("2d");
 
     function updateMoney() {
@@ -188,28 +218,17 @@
     async function initAudio() {
       if (!window.AudioContext && !window.webkitAudioContext) return false;
       try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === "suspended") {
-          await audioCtx.resume();
-        }
-
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") await audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        osc.connect(gain); gain.connect(audioCtx.destination);
         gain.gain.setValueAtTime(0.00001, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.01);
         osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.02);
-
+        osc.start(); osc.stop(audioCtx.currentTime + 0.01);
         audioUnlocked = true;
         return true;
-      } catch (e) {
-        return false;
-      }
+      } catch(e) { return false; }
     }
 
     function beep(type) {
@@ -217,9 +236,7 @@
       try {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
+        osc.connect(gain); gain.connect(audioCtx.destination);
         if (type === "ok") {
           osc.type = "sine";
           osc.frequency.setValueAtTime(880, audioCtx.currentTime);
@@ -235,73 +252,87 @@
           gain.gain.exponentialRampToValueAtTime(0.07, audioCtx.currentTime + 0.01);
           gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.28);
         }
-
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
-      } catch (e) {}
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+      } catch(e) {}
     }
 
     function clearOverlay() {
-      overlay.width = video.clientWidth || overlay.clientWidth || 300;
-      overlay.height = video.clientHeight || overlay.clientHeight || 225;
+      overlay.width = video.clientWidth || 300;
+      overlay.height = video.clientHeight || 225;
       ctx.clearRect(0, 0, overlay.width, overlay.height);
     }
 
-    function drawFaceBox(face) {
+    function drawFaceBox(detection) {
       clearOverlay();
-      const sx = overlay.width / video.videoWidth;
-      const sy = overlay.height / video.videoHeight;
-      const box = face.boundingBox;
-      const x = (video.videoWidth - box.x - box.width) * sx;
-      const y = box.y * sy;
-      const w = box.width * sx;
-      const h = box.height * sy;
+      const scaleX = overlay.width / video.videoWidth;
+      const scaleY = overlay.height / video.videoHeight;
+      const box = detection.box;
+
+      // scaleX(-1) 적용된 캔버스이므로 x 좌표 반전
+      const x = box.x * scaleX;
+      const y = box.y * scaleY;
+      const w = box.width * scaleX;
+      const h = box.height * scaleY;
 
       ctx.strokeStyle = "#22c55e";
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 3;
       ctx.strokeRect(x, y, w, h);
-      ctx.fillStyle = "rgba(34,197,94,0.15)";
+      ctx.fillStyle = "rgba(34,197,94,0.12)";
       ctx.fillRect(x, y, w, h);
       ctx.fillStyle = "#22c55e";
-      ctx.font = "bold 16px sans-serif";
-      ctx.fillText("FACE OK", x + 8, Math.max(20, y - 8));
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("FACE OK ✓", x + 4, Math.max(18, y - 6));
     }
 
     function openGateSuccess(successText) {
       const now = Date.now();
       if (now - lastOpenAt < 2500) return;
       lastOpenAt = now;
-
       clearTimeout(resetTimer);
       setGate(true);
       setMessage(successText || "이용 가능합니다. 통과해 주세요.", "success");
       tripCount += 1;
       updateMoney();
       beep("ok");
-
       resetTimer = setTimeout(() => {
         setGate(false);
         setMessage("다음 승객을 기다리는 중입니다");
       }, 2200);
     }
 
-    function failGate(text = "이용할 수 없습니다. 다시 확인해 주세요.") {
+    function failGate(text) {
       clearTimeout(resetTimer);
       setGate(false);
-      setMessage(text, "fail");
+      setMessage(text || "이용할 수 없습니다. 다시 확인해 주세요.", "fail");
       beep("fail");
+    }
+
+    // face-api.js 모델 로드
+    async function loadModels() {
+      if (modelsLoaded) return true;
+      modelLoading.classList.remove("hidden");
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        modelsLoaded = true;
+        modelLoading.classList.add("hidden");
+        return true;
+      } catch(e) {
+        modelLoading.classList.add("hidden");
+        setMessage("얼굴인식 모델 로드 실패. 네트워크를 확인해주세요.", "fail");
+        return false;
+      }
     }
 
     async function startCamera() {
       if (stream) return true;
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        failGate("이 브라우저에서는 카메라 기능을 사용할 수 없습니다.");
+      if (!navigator.mediaDevices?.getUserMedia) {
+        failGate("이 브라우저에서는 카메라를 사용할 수 없습니다.");
         cameraStatus.textContent = "카메라 미지원";
         return false;
       }
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } },
+          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
           audio: false
         });
         video.srcObject = stream;
@@ -309,7 +340,7 @@
         cameraStatus.textContent = "카메라 연결됨";
         setMessage("카메라가 시작되었습니다. 얼굴을 화면 중앙에 맞춰 주세요");
         return true;
-      } catch (e) {
+      } catch(e) {
         cameraStatus.textContent = "카메라 권한 필요";
         failGate("카메라 권한을 허용해 주세요.");
         return false;
@@ -317,79 +348,74 @@
     }
 
     function stopDetection() {
-      if (detectTimer) {
-        clearInterval(detectTimer);
-        detectTimer = null;
-      }
+      if (detectTimer) { clearInterval(detectTimer); detectTimer = null; }
+      isDetecting = false;
       clearOverlay();
     }
 
     async function startFaceDetection() {
-      const ok = await startCamera();
-      if (!ok) return;
+      const camOk = await startCamera();
+      if (!camOk) return;
 
-      if (!("FaceDetector" in window)) {
-        cameraStatus.textContent = "브라우저 미지원";
-        setMessage("이 브라우저는 얼굴 감지를 지원하지 않습니다. 크롬/엣지 최신 버전에서 실행해 주세요.", "fail");
-        return;
-      }
+      const modelOk = await loadModels();
+      if (!modelOk) return;
 
-      faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
       stopDetection();
+      isDetecting = true;
+      cameraStatus.textContent = "얼굴 감지 준비 중...";
+
+      // 비디오 준비 대기
+      await new Promise(r => {
+        if (video.videoWidth > 0) { r(); return; }
+        video.addEventListener('loadeddata', r, { once: true });
+        setTimeout(r, 2000);
+      });
 
       detectTimer = setInterval(async () => {
-        if (mode !== "face" || !video.videoWidth) return;
+        if (mode !== "face" || !video.videoWidth || !isDetecting) return;
         try {
-          const faces = await faceDetector.detect(video);
-          if (faces.length > 0) {
-            cameraStatus.textContent = "얼굴 감지됨";
-            drawFaceBox(faces[0]);
+          const detection = await faceapi.detectSingleFace(
+            video,
+            new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+          );
+          if (detection) {
+            cameraStatus.textContent = "얼굴 감지됨 ✓";
+            drawFaceBox(detection);
             openGateSuccess("얼굴이 감지되었습니다. 통과해 주세요.");
           } else {
-            cameraStatus.textContent = "얼굴 대기 중";
+            cameraStatus.textContent = "얼굴 대기 중...";
             clearOverlay();
           }
-        } catch (e) {
-          cameraStatus.textContent = "감지 중 오류";
+        } catch(e) {
+          cameraStatus.textContent = "감지 중...";
         }
-      }, 500);
+      }, 600);
     }
 
     async function manualTag() {
       await initAudio();
-
-      if (mode === "qr") {
-        openGateSuccess("QR 승차권 확인 완료. 통과해 주세요.");
-        return;
-      }
-      if (mode === "mobile") {
-        openGateSuccess("모바일패스 확인 완료. 통과해 주세요.");
-        return;
-      }
+      if (mode === "qr") { openGateSuccess("QR 승차권 확인 완료. 통과해 주세요."); return; }
+      if (mode === "mobile") { openGateSuccess("모바일패스 확인 완료. 통과해 주세요."); return; }
       if (mode === "tmoney") {
-        if (balance >= 1450) {
-          balance -= 1450;
-          openGateSuccess("교통카드 태그 완료. 통과해 주세요.");
+        if (balance >= FARE) {
+          balance -= FARE;
+          openGateSuccess(`교통카드 태그 완료. 잔액 ₩${balance.toLocaleString()}`);
         } else {
-          failGate("잔액이 부족합니다.");
+          failGate(`잔액 부족! ₩${balance.toLocaleString()} (필요: ₩${FARE.toLocaleString()})`);
         }
         return;
       }
-      if (mode === "face") {
-        startFaceDetection();
-      }
+      if (mode === "face") { startFaceDetection(); }
     }
 
-    async function unlockAudioFromGesture() {
+    // 충전 버튼
+    document.getElementById("chargeBtn").addEventListener("click", async () => {
       await initAudio();
-      document.removeEventListener("pointerdown", unlockAudioFromGesture);
-      document.removeEventListener("touchstart", unlockAudioFromGesture);
-      document.removeEventListener("click", unlockAudioFromGesture);
-    }
-
-    document.addEventListener("pointerdown", unlockAudioFromGesture, { once: true });
-    document.addEventListener("touchstart", unlockAudioFromGesture, { once: true });
-    document.addEventListener("click", unlockAudioFromGesture, { once: true });
+      balance += 10000;
+      updateMoney();
+      setMessage(`₩10,000 충전 완료! 현재 잔액: ₩${balance.toLocaleString()}`, "success");
+      beep("ok");
+    });
 
     document.getElementById("scanBtn").addEventListener("click", manualTag);
 
@@ -399,14 +425,14 @@
       stopDetection();
       mode = "face";
       soundOn = true;
-      balance = 4250;
+      balance = 50000;
       tripCount = 0;
       setGate(false);
       setMessage("카메라를 시작하고 얼굴을 화면 중앙에 맞춰 주세요");
       updateMoney();
       soundBtn.textContent = "🔊";
       cameraStatus.textContent = stream ? "카메라 연결됨" : "카메라 시작 전";
-      modeButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === "face"));
+      modeButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.mode === "face"));
     });
 
     soundBtn.addEventListener("click", async () => {
@@ -416,32 +442,30 @@
       if (soundOn) beep("ok");
     });
 
-    modeButtons.forEach((btn) => {
+    modeButtons.forEach(btn => {
       btn.addEventListener("click", async () => {
         await initAudio();
         mode = btn.dataset.mode;
-        modeButtons.forEach((b) => b.classList.remove("active"));
+        modeButtons.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-
         if (mode === "face") {
-          setMessage("얼굴인식 모드가 선택되었습니다. 카메라를 시작해 주세요");
+          setMessage("얼굴인식 모드. 카메라를 시작해 주세요.");
           await startFaceDetection();
         } else {
           stopDetection();
-          setMessage(btn.dataset.label + " 모드가 선택되었습니다");
+          const labels = { qr:"QR 승차권", tmoney:"교통카드", mobile:"모바일패스" };
+          setMessage(`${labels[mode]} 모드. 태그 버튼을 눌러주세요.`);
           cameraStatus.textContent = stream ? "카메라 연결됨" : "카메라 시작 전";
         }
       });
     });
 
+    document.addEventListener("pointerdown", initAudio, { once: true });
+
     window.addEventListener("beforeunload", () => {
       stopDetection();
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-      if (audioCtx && audioCtx.state !== "closed") {
-        audioCtx.close();
-      }
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      if (audioCtx && audioCtx.state !== "closed") audioCtx.close();
     });
 
     updateMoney();
