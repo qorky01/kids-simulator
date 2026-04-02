@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>버스 기사 시뮬레이터</title>
+  <style>
+    :root {
+      --bg: #1a1f2e;
+      --panel: #242a3d;
+      --border: #3a4460;
+      --text: #e8edf5;
+      --muted: #7a8aaa;
+      --green: #2ecc71;
+      --red: #e74c3c;
+      --amber: #f39c12;
+      --blue: #3498db;
+      --btn-shadow: 0 6px 0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+    html, body { width: 100%; height: 100dvh; overflow: hidden; background: var(--bg); font-family: 'Pretendard', -apple-system, sans-serif; color: var(--text); }
+
+    /* 탭 바 */
+    .tab-bar {
+      display: flex; height: 52px;
+      background: #111827; border-bottom: 2px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1; border: none; background: transparent; color: var(--muted);
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      border-bottom: 3px solid transparent; transition: 0.2s;
+    }
+    .tab-btn.active { color: var(--text); border-bottom-color: var(--blue); }
+
+    /* 콘텐츠 영역 */
+    .tab-content { display: none; height: calc(100dvh - 52px); overflow-y: auto; }
+    .tab-content.active { display: flex; flex-direction: column; }
+
+    /* ===== 운전석 탭 ===== */
+    #tab-drive {
+      background: var(--bg);
+      padding: 10px;
+      gap: 10px;
+    }
+
+    /* 노선 선택 + 정류장 표시판 */
+    .route-board {
+      background: #0a0f1e;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .route-select {
+      background: #1e2740; color: var(--text); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 8px; font-size: 13px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .station-display {
+      flex: 1; text-align: center;
+      font-family: 'Courier New', monospace;
+    }
+    .station-label { font-size: 10px; color: var(--muted); }
+    .station-name {
+      font-size: clamp(14px, 3.5vw, 20px); font-weight: 900; color: var(--amber);
+      text-shadow: 0 0 10px rgba(243,156,18,0.5);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .station-next { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* 계기판 */
+    .dashboard-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .gauge-box {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px; text-align: center;
+    }
+    .gauge-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+    .gauge-value { font-size: clamp(20px, 5vw, 28px); font-weight: 900; font-family: 'Courier New', monospace; color: var(--green); }
+    .gauge-unit { font-size: 10px; color: var(--muted); }
+
+    /* 기어 */
+    .gear-display { color: var(--blue) !important; }
+
+    /* 스티어링 휠 영역 */
+    .steering-section {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px;
+      flex: 1;
+    }
+    .wheel-wrap { position: relative; width: min(180px, 45vw); height: min(180px, 45vw); }
+    .wheel {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #555, #222);
+      border: 6px solid #666;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      transition: transform 0.1s ease;
+      cursor: pointer;
+      box-shadow: 0 0 0 4px #333, 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .wheel::before {
+      content: '';
+      position: absolute;
+      width: 30%; height: 30%;
+      background: #444;
+      border-radius: 50%;
+      border: 3px solid #555;
+    }
+    /* 스포크 */
+    .wheel::after {
+      content: '';
+      position: absolute;
+      width: 6px; height: 70%;
+      background: #555;
+      border-radius: 3px;
+      top: 15%;
+    }
+
+    /* 좌우 버튼 */
+    .steer-btns { display: flex; flex-direction: column; gap: 8px; }
+    .steer-btn {
+      width: 56px; height: 56px;
+      background: var(--panel); border: 2px solid var(--border);
+      border-radius: 12px; color: var(--text); font-size: 22px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: 0.1s;
+    }
+    .steer-btn:active { transform: scale(0.93); background: #3a4460; }
+
+    /* 기어 선택 */
+    .gear-row {
+      display: flex; gap: 6px; justify-content: center;
+    }
+    .gear-btn {
+      flex: 1; padding: 10px 4px; background: var(--panel);
+      border: 2px solid var(--border); border-radius: 10px;
+      color: var(--muted); font-size: 15px; font-weight: 900;
+      cursor: pointer; text-align: center; transition: 0.1s;
+      max-width: 60px;
+    }
+    .gear-btn.active { background: #1a3a5c; border-color: var(--blue); color: var(--blue); }
+    .gear-btn:active { transform: scale(0.95); }
+
+    /* 페달 */
+    .pedal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pedal-btn {
+      padding: 14px; border-radius: 14px; border: none;
+      font-size: 16px; font-weight: 900; cursor: pointer;
+      transition: 0.1s; letter-spacing: 1px;
+    }
+    .pedal-accel {
+      background: #1a5c2a; color: #4ade80;
+      border: 2px solid #2ecc71;
+      box-shadow: var(--btn-shadow) #0f3518;
+    }
+    .pedal-accel:active { transform: translateY(4px); box-shadow: 0 2px 0 #0f3518; }
+    .pedal-brake {
+      background: #5c1a1a; color: #f87171;
+      border: 2px solid #e74c3c;
+      box-shadow: var(--btn-shadow) #3b0f0f;
+    }
+    .pedal-brake:active { transform: translateY(4px); box-shadow: 0 2px 0 #3b0f0f; }
+
+    /* 버튼 그리드 */
+    .ctrl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .ctrl-btn {
+      padding: 12px 6px; background: var(--panel);
+      border: 2px solid var(--border); border-radius: 12px;
+      color: var(--text); font-size: 12px; font-weight: 700;
+      cursor: pointer; text-align: center; transition: 0.1s;
+    }
+    .ctrl-btn .btn-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+    .ctrl-btn:active { transform: scale(0.94); }
+    .ctrl-btn.active-red { border-color: var(--red); background: #3d1515; }
+    .ctrl-btn.active-amber { border-color: var(--amber); background: #3d2e0a; }
+    .ctrl-btn.active-green { border-color: var(--green); background: #0f2e1a; }
+    .ctrl-btn.active-blue { border-color: var(--blue); background: #0f2040; }
+
+    /* 경광등 바 */
+    .light-bar { height: 8px; display: flex; border-radius: 4px; overflow: hidden; }
+    .light-unit { flex: 1; }
+
+    /* ===== 요금 단말기 탭 ===== */
+    #tab-fare {
+      padding: 12px;
+      gap: 10px;
+      background: #f0f4f8;
+      color: #1a202c;
+    }
+
+    .terminal-header {
+      background: #1a3a5c; color: white; border-radius: 14px;
+      padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .terminal-title { font-size: 14px; font-weight: 900; }
+    .terminal-status { font-size: 12px; opacity: 0.8; }
+
+    /* LCD 요금 표시 */
+    .lcd-fare {
+      background: #0a0f1e; border-radius: 14px; padding: 16px;
+      text-align: center; border: 2px solid #2a3a5a;
+    }
+    .fare-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .fare-amount { font-size: clamp(32px, 10vw, 48px); font-weight: 900; font-family: 'Courier New', monospace; color: var(--green); text-shadow: 0 0 15px rgba(46,204,113,0.4); }
+    .fare-unit { font-size: 16px; color: var(--muted); }
+
+    /* 요금 종류 버튼 */
+    .fare-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .fare-type-btn {
+      padding: 12px 6px; border-radius: 12px; border: 2px solid #e2e8f0;
+      background: white; cursor: pointer; text-align: center; transition: 0.15s;
+      font-weight: 700;
+    }
+    .fare-type-btn .type-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+    .fare-type-btn .type-name { font-size: 12px; color: #4a5568; }
+    .fare-type-btn .type-price { font-size: 13px; color: #2b6cb0; font-weight: 900; }
+    .fare-type-btn.active { border-color: #3b82f6; background: #ebf8ff; }
+    .fare-type-btn:active { transform: scale(0.95); }
+
+    /* 태그 버튼 */
+    .tag-btn {
+      width: 100%; padding: 18px; border-radius: 16px; border: none;
+      background: linear-gradient(135deg, #0f4c81, #1a6fb5);
+      color: white; font-size: 18px; font-weight: 900;
+      cursor: pointer; transition: 0.1s;
+      box-shadow: 0 6px 0 #0a3258;
+    }
+    .tag-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #0a3258; }
+
+    /* 통계 */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-card {
+      background: white; border-radius: 12px; padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .stat-card-label { font-size: 11px; color: #718096; margin-bottom: 4px; }
+    .stat-card-value { font-size: 24px; font-weight: 900; color: #2d3748; }
+    .stat-card-sub { font-size: 11px; color: #a0aec0; margin-top: 2px; }
+
+    /* 메시지 */
+    .fare-msg {
+      padding: 14px; border-radius: 12px; text-align: center;
+      font-weight: 700; font-size: 15px;
+      background: #e6fffa; color: #276749; border: 1px solid #9ae6b4;
+      min-height: 52px; display: flex; align-items: center; justify-content: center;
+    }
+    .fare-msg.fail { background: #fff5f5; color: #9b2c2c; border-color: #fc8181; }
+
+    /* 운행 기록 */
+    .log-box {
+      background: white; border-radius: 12px; padding: 12px;
+      max-height: 120px; overflow-y: auto;
+      font-size: 12px; color: #4a5568;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .log-line { padding: 3px 0; border-bottom: 1px solid #f0f0f0; }
+    .log-line:last-child { border-bottom: none; }
+    .log-time { color: #a0aec0; margin-right: 6px; }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    @keyframes shake { 0%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} 100%{transform:translateX(0)} }
+  </style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('drive')">🚌 운전석</button>
+  <button class="tab-btn" onclick="switchTab('fare')">💳 요금 단말기</button>
+</div>
+
+<!-- ===== 운전석 탭 ===== -->
+<div id="tab-drive" class="tab-content active">
+
+  <!-- 경광등 바 -->
+  <div class="light-bar" id="lightBar">
+    <div class="light-unit" id="lu1"></div>
+    <div class="light-unit" id="lu2"></div>
+    <div class="light-unit" id="lu3"></div>
+    <div class="light-unit" id="lu4"></div>
+    <div class="light-unit" id="lu5"></div>
+    <div class="light-unit" id="lu6"></div>
+    <div class="light-unit" id="lu7"></div>
+    <div class="light-unit" id="lu8"></div>
+  </div>
+
+  <!-- 노선·정류장 표시 -->
+  <div class="route-board">
+    <select class="route-select" id="routeSelect" onchange="changeRoute()">
+      <option value="7738">7738</option>
+      <option value="7739">7739</option>
+      <option value="7612">7612</option>
+      <option value="075A">075A</option>
+    </select>
+    <div class="station-display">
+      <div class="station-label">현재 정류장</div>
+      <div class="station-name" id="curStation">은평공영차고지</div>
+      <div class="station-next" id="nextStation">다음 ▶ 디지털미디어시티</div>
+    </div>
+  </div>
+
+  <!-- 계기판 -->
+  <div class="dashboard-row">
+    <div class="gauge-box">
+      <div class="gauge-label">속도</div>
+      <div class="gauge-value" id="speedVal">0</div>
+      <div class="gauge-unit">km/h</div>
+    </div>
+    <div class="gauge-box">
+      <div class="gauge-label">기어</div>
+      <div class="gauge-value gear-display" id="gearVal">N</div>
+      <div class="gauge-unit">GEAR</div>
+    </div>
+    <div class="gauge-box">
+      <div class="gauge-label">RPM</div>
+      <div class="gauge-value" id="rpmVal" style="color:var(--amber)">800</div>
+      <div class="gauge-unit">rpm</div>
+    </div>
+  </div>
+
+  <!-- 스티어링 + 방향 버튼 -->
+  <div class="steering-section">
+    <div class="steer-btns">
+      <div class="steer-btn" onmousedown="steer('left')" onmouseup="steer('center')" ontouchstart="steer('left')" ontouchend="steer('center')">◀</div>
+      <div class="steer-btn" style="font-size:14px;" onclick="honk()">📯</div>
+    </div>
+
+    <div class="wheel-wrap">
+      <div class="wheel" id="wheelEl"></div>
+    </div>
+
+    <div class="steer-btns">
+      <div class="steer-btn" onmousedown="steer('right')" onmouseup="steer('center')" ontouchstart="steer('right')" ontouchend="steer('center')">▶</div>
+      <div class="steer-btn" style="font-size:14px;" onclick="toggleEmergency()">🚨</div>
+    </div>
+  </div>
+
+  <!-- 기어 선택 -->
+  <div class="gear-row">
+    <div class="gear-btn" onclick="setGear('P')">P</div>
+    <div class="gear-btn" onclick="setGear('R')">R</div>
+    <div class="gear-btn active" onclick="setGear('N')">N</div>
+    <div class="gear-btn" onclick="setGear('D')">D</div>
+  </div>
+
+  <!-- 페달 -->
+  <div class="pedal-row">
+    <button class="pedal-btn pedal-accel"
+      onmousedown="accelDown()" onmouseup="accelUp()"
+      ontouchstart="accelDown()" ontouchend="accelUp()">
+      엑셀 ▲
+    </button>
+    <button class="pedal-btn pedal-brake"
+      onmousedown="brakeDown()" onmouseup="brakeUp()"
+      ontouchstart="brakeDown()" ontouchend="brakeUp()">
+      브레이크 ■
+    </button>
+  </div>
+
+  <!-- 컨트롤 버튼 -->
+  <div class="ctrl-grid">
+    <div class="ctrl-btn" id="btn-frontdoor" onclick="toggleDoor('front')">
+      <span class="btn-icon">🚪</span>앞문
+    </div>
+    <div class="ctrl-btn" id="btn-backdoor" onclick="toggleDoor('back')">
+      <span class="btn-icon">🚪</span>뒷문
+    </div>
+    <div class="ctrl-btn" id="btn-announce" onclick="playAnnounce()">
+      <span class="btn-icon">📢</span>안내방송
+    </div>
+    <div class="ctrl-btn" id="btn-hazard" onclick="toggleHazard()">
+      <span class="btn-icon">⚠️</span>비상등
+    </div>
+    <div class="ctrl-btn" id="btn-headlight" onclick="toggleHeadlight()">
+      <span class="btn-icon">💡</span>전조등
+    </div>
+    <div class="ctrl-btn" id="btn-nextstation" onclick="arriveNext()">
+      <span class="btn-icon">🛑</span>다음정류장
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== 요금 단말기 탭 ===== -->
+<div id="tab-fare" class="tab-content">
+
+  <div class="terminal-header">
+    <div>
+      <div class="terminal-title">🚌 버스 요금 단말기</div>
+      <div class="terminal-status" id="termRouteLabel">노선: 7738</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:11px;opacity:0.7;">누적 수입</div>
+      <div style="font-size:18px;font-weight:900;" id="totalFare">₩0</div>
+    </div>
+  </div>
+
+  <!-- LCD 요금 표시 -->
+  <div class="lcd-fare">
+    <div class="fare-label">요금</div>
+    <div>
+      <span class="fare-amount" id="fareDisplay">1,500</span>
+      <span class="fare-unit">원</span>
+    </div>
+  </div>
+
+  <!-- 요금 종류 -->
+  <div class="fare-types">
+    <div class="fare-type-btn active" onclick="selectFareType('adult')" id="ft-adult">
+      <span class="type-icon">👨</span>
+      <div class="type-name">성인</div>
+      <div class="type-price">1,500원</div>
+    </div>
+    <div class="fare-type-btn" onclick="selectFareType('teen')" id="ft-teen">
+      <span class="type-icon">🧑‍🎓</span>
+      <div class="type-name">청소년</div>
+      <div class="type-price">1,000원</div>
+    </div>
+    <div class="fare-type-btn" onclick="selectFareType('child')" id="ft-child">
+      <span class="type-icon">👦</span>
+      <div class="type-name">어린이</div>
+      <div class="type-price">500원</div>
+    </div>
+  </div>
+
+  <!-- 카드 태그 버튼 -->
+  <button class="tag-btn" onclick="tagCard()">
+    💳 카드 태그 (승차)
+  </button>
+
+  <!-- 메시지 -->
+  <div class="fare-msg" id="fareMsg">카드를 태그해 주세요</div>
+
+  <!-- 통계 -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card-label">총 승객수</div>
+      <div class="stat-card-value" id="passengerCount">0</div>
+      <div class="stat-card-sub">명 탑승</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-label">현재 정류장</div>
+      <div class="stat-card-value" style="font-size:14px;" id="fareStationName">출발 전</div>
+      <div class="stat-card-sub">승하차 중</div>
+    </div>
+  </div>
+
+  <!-- 운행 기록 -->
+  <div class="log-box" id="fareLog">
+    <div class="log-line"><span class="log-time">--:--</span>운행을 시작하세요!</div>
+  </div>
+
+</div>
+
+<script>
+// ===== 노선 데이터 =====
+const ROUTES = {
+  '7738': {
+    name: '7738 지선',
+    color: '#3b82f6',
+    stations: ['은평공영차고지','디지털미디어시티','수색역','DMC래미안','북가좌사거리','북가좌초교','KT가좌지사','가재울뉴타운','연가초교','연희중학교','서대문구청','명지대삼거리','홍제역']
+  },
+  '7739': {
+    name: '7739 지선',
+    color: '#8b5cf6',
+    stations: ['은평공영차고지','디지털미디어시티','수색역','가재울뉴타운','DMC푸르지오','남가좌동','연희동자치회관','홍남교','홍대입구역']
+  },
+  '7612': {
+    name: '7612 지선',
+    color: '#f59e0b',
+    stations: ['홍연2교','서교동주민센터','홍대입구역','합정역','망원역','성산대교북단','양화대교북단','당산역','영등포구청역']
+  },
+  '075A': {
+    name: '경기 075A',
+    color: '#10b981',
+    stations: ['원흥역4번출구','삼송마을16단지','명현학교','동원17단지','삼송역','농협하나로클럽','스타필드후문','호반22단지','용현마을사거리','향동지구중앙','수색역','디지털미디어시티역']
+  }
+};
+
+// ===== 상태 =====
+let state = {
+  route: '7738',
+  stationIdx: 0,
+  speed: 0,
+  gear: 'N',
+  wheelAngle: 0,
+  frontDoorOpen: false,
+  backDoorOpen: false,
+  hazardOn: false,
+  headlightOn: false,
+  emergencyOn: false,
+  accelOn: false,
+  brakeOn: false,
+  rpm: 800,
+};
+
+let fare = {
+  type: 'adult',
+  prices: { adult: 1500, teen: 1000, child: 500 },
+  total: 0,
+  passengers: 0,
+};
+
+let audioCtx = null;
+let lightInterval = null;
+let hazardInterval = null;
+let driveInterval = null;
+
+// ===== 오디오 =====
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function beep(freq, dur, type='sine', vol=0.1) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function honk() {
+  beep(220, 0.8, 'sawtooth', 0.15);
+  setTimeout(() => beep(196, 0.5, 'sawtooth', 0.12), 300);
+  haptic(200);
+}
+
+function haptic(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+// ===== TTS =====
+function speak(text) {
+  window.speechSynthesis.cancel();
+  const msg = new SpeechSynthesisUtterance(text);
+  msg.lang = 'ko-KR'; msg.rate = 0.95;
+  window.speechSynthesis.speak(msg);
+}
+
+// ===== 탭 전환 =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0) === (tab === 'drive'));
+  });
+  document.getElementById('tab-drive').classList.toggle('active', tab === 'drive');
+  document.getElementById('tab-fare').classList.toggle('active', tab === 'fare');
+}
+
+// ===== 노선 변경 =====
+function changeRoute() {
+  state.route = document.getElementById('routeSelect').value;
+  state.stationIdx = 0;
+  updateStationDisplay();
+  document.getElementById('termRouteLabel').textContent = `노선: ${state.route}`;
+  speak(`${ROUTES[state.route].name} 노선을 선택했습니다.`);
+}
+
+function updateStationDisplay() {
+  const route = ROUTES[state.route];
+  const stations = route.stations;
+  const cur = stations[state.stationIdx];
+  const next = stations[state.stationIdx + 1] || '종착역';
+  document.getElementById('curStation').textContent = cur;
+  document.getElementById('nextStation').textContent = `다음 ▶ ${next}`;
+  document.getElementById('fareStationName').textContent = cur;
+}
+
+// ===== 스티어링 =====
+function steer(dir) {
+  const wheel = document.getElementById('wheelEl');
+  if (dir === 'left') { state.wheelAngle = -35; beep(100, 0.1, 'square', 0.03); }
+  else if (dir === 'right') { state.wheelAngle = 35; beep(100, 0.1, 'square', 0.03); }
+  else state.wheelAngle = 0;
+  wheel.style.transform = `rotate(${state.wheelAngle}deg)`;
+}
+
+// ===== 기어 =====
+function setGear(g) {
+  state.gear = g;
+  document.getElementById('gearVal').textContent = g;
+  document.querySelectorAll('.gear-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === g);
+  });
+  beep(g === 'D' ? 300 : 200, 0.1);
+  haptic(30);
+  if (g === 'D') speak('주행');
+  else if (g === 'R') speak('후진');
+  else if (g === 'P') { speak('주차'); state.speed = 0; }
+}
+
+// ===== 페달 =====
+function accelDown() { state.accelOn = true; }
+function accelUp() { state.accelOn = false; }
+function brakeDown() { state.brakeOn = true; }
+function brakeUp() { state.brakeOn = false; }
+
+// 속도 업데이트 루프
+setInterval(() => {
+  if (state.gear === 'D' && state.accelOn && !state.brakeOn) {
+    state.speed = Math.min(state.speed + 2, 80);
+    state.rpm = 800 + state.speed * 30;
+  } else if (state.brakeOn) {
+    state.speed = Math.max(state.speed - 4, 0);
+    state.rpm = Math.max(800, state.rpm - 100);
+  } else if (state.gear !== 'P') {
+    state.speed = Math.max(state.speed - 1, 0);
+    state.rpm = Math.max(800, state.rpm - 50);
+  }
+  if (state.gear === 'P') { state.speed = 0; state.rpm = 800; }
+
+  document.getElementById('speedVal').textContent = Math.floor(state.speed);
+  document.getElementById('rpmVal').textContent = Math.floor(state.rpm).toLocaleString();
+}, 100);
+
+// ===== 문 =====
+function toggleDoor(which) {
+  if (state.speed > 0) { speak("주행 중에는 문을 열 수 없습니다."); return; }
+  const key = which === 'front' ? 'frontDoorOpen' : 'backDoorOpen';
+  const btnId = `btn-${which}door`;
+  state[key] = !state[key];
+  const open = state[key];
+  document.getElementById(btnId).classList.toggle('active-green', open);
+  beep(open ? 400 : 300, 0.3, 'sine', 0.06);
+  haptic(50);
+  speak(open ? `${which === 'front' ? '앞' : '뒷'}문이 열립니다.` : `${which === 'front' ? '앞' : '뒷'}문이 닫힙니다.`);
+}
+
+// ===== 안내방송 =====
+function playAnnounce() {
+  const route = ROUTES[state.route];
+  const cur = route.stations[state.stationIdx];
+  const next = route.stations[state.stationIdx + 1] || '종착역';
+  beep(800, 0.1); beep(1000, 0.1);
+  document.getElementById('btn-announce').classList.add('active-blue');
+  setTimeout(() => document.getElementById('btn-announce').classList.remove('active-blue'), 1000);
+
+  if (state.stationIdx === route.stations.length - 1) {
+    speak(`이번 역은 종착역 ${cur}입니다. 오늘도 이용해 주셔서 감사합니다.`);
+  } else {
+    speak(`이번 정류장은 ${cur}입니다. 다음 정류장은 ${next}입니다.`);
+  }
+}
+
+// ===== 다음 정류장 =====
+function arriveNext() {
+  const route = ROUTES[state.route];
+  if (state.stationIdx < route.stations.length - 1) {
+    state.stationIdx++;
+    updateStationDisplay();
+    beep(600, 0.2); beep(800, 0.2);
+    haptic([50, 30, 50]);
+    playAnnounce();
+    addFareLog(`🛑 ${route.stations[state.stationIdx]} 도착`);
+  } else {
+    speak('종착역에 도착했습니다. 수고하셨습니다.');
+    beep(400, 1);
+  }
+}
+
+// ===== 비상등 =====
+function toggleHazard() {
+  state.hazardOn = !state.hazardOn;
+  document.getElementById('btn-hazard').classList.toggle('active-amber', state.hazardOn);
+  if (state.hazardOn) {
+    hazardInterval = setInterval(() => {
+      const units = document.querySelectorAll('.light-unit');
+      const on = Math.floor(Date.now() / 500) % 2 === 0;
+      units.forEach(u => {
+        u.style.background = on ? '#f39c12' : 'transparent';
+        u.style.boxShadow = on ? '0 0 8px #f39c12' : 'none';
+      });
+    }, 100);
+  } else {
+    clearInterval(hazardInterval);
+    document.querySelectorAll('.light-unit').forEach(u => { u.style.background = 'transparent'; });
+  }
+  haptic(50);
+}
+
+// ===== 전조등 =====
+function toggleHeadlight() {
+  state.headlightOn = !state.headlightOn;
+  document.getElementById('btn-headlight').classList.toggle('active-amber', state.headlightOn);
+  beep(state.headlightOn ? 600 : 400, 0.1);
+  haptic(30);
+}
+
+// ===== 긴급 =====
+function toggleEmergency() {
+  state.emergencyOn = !state.emergencyOn;
+  if (state.emergencyOn) {
+    lightInterval = setInterval(() => {
+      const units = document.querySelectorAll('.light-unit');
+      const phase = Math.floor(Date.now() / 80) % 2;
+      units.forEach((u, i) => {
+        const isLeft = i < 4;
+        u.style.background = (phase===0&&isLeft)||(phase===1&&!isLeft) ? (isLeft?'#3b82f6':'#ef4444') : 'transparent';
+      });
+    }, 80);
+    beep(440, 0.5, 'sawtooth', 0.12);
+    speak('긴급 상황!');
+  } else {
+    clearInterval(lightInterval);
+    document.querySelectorAll('.light-unit').forEach(u => { u.style.background='transparent'; });
+  }
+  haptic([100, 50, 200]);
+}
+
+// ===== 요금 단말기 =====
+function selectFareType(type) {
+  fare.type = type;
+  const prices = { adult: 1500, teen: 1000, child: 500 };
+  document.getElementById('fareDisplay').textContent = prices[type].toLocaleString();
+  document.querySelectorAll('.fare-type-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`ft-${type}`).classList.add('active');
+  beep(800, 0.05);
+}
+
+function tagCard() {
+  getAudio();
+  const price = fare.prices[fare.type];
+  fare.total += price;
+  fare.passengers++;
+
+  document.getElementById('totalFare').textContent = `₩${fare.total.toLocaleString()}`;
+  document.getElementById('passengerCount').textContent = fare.passengers;
+
+  const msg = document.getElementById('fareMsg');
+  const typeNames = { adult: '성인', teen: '청소년', child: '어린이' };
+  msg.textContent = `✅ ${typeNames[fare.type]} ${price.toLocaleString()}원 결제 완료`;
+  msg.className = 'fare-msg';
+
+  beep(1200, 0.08); setTimeout(() => beep(1600, 0.12), 100);
+  haptic(80);
+
+  speak(`${price.toLocaleString()}원입니다.`);
+
+  addFareLog(`💳 ${typeNames[fare.type]} ${price.toLocaleString()}원`);
+
+  setTimeout(() => { msg.textContent = '카드를 태그해 주세요'; }, 2000);
+}
+
+function addFareLog(text) {
+  const log = document.getElementById('fareLog');
+  const now = new Date();
+  const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">${time}</span>${text}`;
+  log.insertBefore(line, log.firstChild);
+}
+
+// 초기화
+document.addEventListener('touchstart', () => { try { getAudio(); } catch(e) {} }, { once: true });
+changeRoute();
+</script>
+</body>
+</html>
