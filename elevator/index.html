@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>엘리베이터 마스터 V11 - 시윤 수리공 모드</title>
+    <title>엘리베이터 마스터 V11 - 수리공 모드</title>
     <style>
         :root {
             --metal: linear-gradient(145deg, #dcdde1, #7f8c8d);
@@ -28,7 +28,6 @@
 
         @media (orientation: landscape) { #app { flex-direction: row; } }
 
-        /* 시각화 영역 */
         .view-pane {
             flex: 0 0 35%; background: #1e272e; border-radius: 12px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -36,7 +35,6 @@
         }
         @media (orientation: landscape) { .view-pane { flex: 1.2; } }
 
-        /* 수리 중 오버레이 (안전띠 애니메이션) */
         #out-of-service {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); z-index: 18; display: none;
@@ -81,7 +79,6 @@
         .door-open .door-l { transform: translateX(-95%); }
         .door-open .door-r { transform: translateX(95%); }
 
-        /* 제어 영역 */
         .control-pane {
             flex: 1; background: var(--panel); border-radius: 12px;
             display: flex; flex-direction: column; overflow: hidden; border: 3px solid #475569;
@@ -107,7 +104,6 @@
 
         .special-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; height: clamp(45px, 7vh, 60px); margin-top: 5px; }
 
-        /* 점검 패널 */
         #inspection-ui { display: none; background: #2f3640; color: white; height: 100%; flex-direction: column; }
         #cover {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -136,7 +132,6 @@
 
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-        /* 모달 */
         #pw-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 100; align-items: center; justify-content: center;
@@ -151,20 +146,16 @@
 <div id="app">
     <div class="view-pane" id="sim-view">
         <div id="lighting-overlay"></div>
-        
         <div id="out-of-service">
             <div class="caution-tape tape1">점검 중 OUT OF SERVICE</div>
             <div class="caution-tape tape2">위험 점검 중 DANGER</div>
             <div style="z-index:19; color:white; font-weight:bold; margin-top:80px; font-size:1.2rem; background:red; padding:5px 15px; border-radius:20px;">수리 중</div>
         </div>
-
         <div id="estop-msg" style="display:none; position:absolute; top:10px; background:red; color:white; padding:4px 12px; border-radius:4px; font-size:0.7rem; font-weight:bold; z-index:15;">EMERGENCY STOP ACTIVE</div>
-        
         <div class="display">
             <div id="d-dir" class="dir-icon">●</div>
             <div id="d-floor" class="floor-num">1</div>
         </div>
-
         <div id="d-frame" class="elevator-frame">
             <div class="door door-l"></div>
             <div class="door door-r"></div>
@@ -177,7 +168,6 @@
             <button id="t-pass" class="tab-btn active" onclick="setMode('passenger')">승객 모드</button>
             <button id="t-insp" class="tab-btn" onclick="setMode('inspection')">점검 모드</button>
         </div>
-
         <div class="ui-content">
             <div id="passenger-ui" style="display: flex; flex-direction: column; height: 100%;">
                 <div class="floor-grid" id="btns"></div>
@@ -187,7 +177,6 @@
                     <button class="btn" style="background:#fad3cf; color:#c0392b;" onclick="emergencyBell()">🔔</button>
                 </div>
             </div>
-
             <div id="inspection-ui">
                 <div id="cover">
                     <div class="keyhole" onclick="openPw()">
@@ -197,15 +186,13 @@
                 </div>
                 <div class="scroll-area">
                     <button id="estop-btn" class="estop" onclick="toggleEstop()">SYSTEM E-STOP</button>
-                    
                     <div class="sw-box"><span>수리 중 상태 설정</span><div id="sw-repair" class="toggle" onclick="toggleSw('sw-repair')"></div></div>
-                    
                     <div class="sw-box"><span>점검 운전 (INSP)</span><div id="sw-insp" class="toggle" onclick="toggleSw('sw-insp')"></div></div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-                        <button class="btn" style="background:#2980b9; color:#fff; height:50px;" 
+                        <button class="btn" style="background:#2980b9; color:#fff; height:50px;"
                             onmousedown="manualMove('up')" onmouseup="stopManual()" onmouseleave="stopManual()"
                             ontouchstart="manualMove('up')" ontouchend="stopManual()" ontouchcancel="stopManual()">▲ UP</button>
-                        <button class="btn" style="background:var(--industrial); color:#000; height:50px;" 
+                        <button class="btn" style="background:var(--industrial); color:#000; height:50px;"
                             onmousedown="manualMove('down')" onmouseup="stopManual()" onmouseleave="stopManual()"
                             ontouchstart="manualMove('down')" ontouchend="stopManual()" ontouchcancel="stopManual()">▼ DOWN</button>
                     </div>
@@ -235,41 +222,54 @@
 </div>
 
 <script>
-    const audio = new (window.AudioContext || window.webkitAudioContext)();
+    // iOS 대응: AudioContext를 즉시 생성하지 않고 첫 터치 시 생성
+    let audio = null;
     let fanOsc = null;
     let fanGain = null;
 
+    function getAudio() {
+        if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+        if (audio.state === 'suspended') audio.resume();
+        return audio;
+    }
+
     function beep(f, d, t='sine', v=0.05) {
-        const o = audio.createOscillator(); const g = audio.createGain();
-        o.type = t; o.frequency.value = f;
-        g.gain.setValueAtTime(v, audio.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, audio.currentTime + d);
-        o.connect(g); g.connect(audio.destination);
-        o.start(); o.stop(audio.currentTime + d);
+        try {
+            const ctx = getAudio();
+            const o = ctx.createOscillator(); const g = ctx.createGain();
+            o.type = t; o.frequency.value = f;
+            g.gain.setValueAtTime(v, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + d);
+            o.connect(g); g.connect(ctx.destination);
+            o.start(); o.stop(ctx.currentTime + d);
+        } catch(e) {}
     }
 
     function playFanSound(on) {
-        if (on) {
-            if (fanOsc) return;
-            fanOsc = audio.createOscillator();
-            fanGain = audio.createGain();
-            fanOsc.type = 'sawtooth';
-            fanOsc.frequency.value = 50; 
-            fanGain.gain.setValueAtTime(0.01, audio.currentTime);
-            fanOsc.connect(fanGain);
-            fanGain.connect(audio.destination);
-            fanOsc.start();
-        } else {
-            if (fanOsc) {
-                fanGain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.3);
-                fanOsc.stop(audio.currentTime + 0.3);
-                fanOsc = null; fanGain = null;
+        try {
+            const ctx = getAudio();
+            if (on) {
+                if (fanOsc) return;
+                fanOsc = ctx.createOscillator();
+                fanGain = ctx.createGain();
+                fanOsc.type = 'sawtooth';
+                fanOsc.frequency.value = 50;
+                fanGain.gain.setValueAtTime(0.01, ctx.currentTime);
+                fanOsc.connect(fanGain);
+                fanGain.connect(ctx.destination);
+                fanOsc.start();
+            } else {
+                if (fanOsc) {
+                    fanGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                    fanOsc.stop(ctx.currentTime + 0.3);
+                    fanOsc = null; fanGain = null;
+                }
             }
-        }
+        } catch(e) {}
     }
 
     function speak(text) {
-        window.speechSynthesis.cancel(); // 겹침 방지
+        window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'ko-KR';
         window.speechSynthesis.speak(utterance);
@@ -292,10 +292,10 @@
             }
             if(state.floor === i && !state.moving) { doorAction('open'); return; }
             if(state.targets.has(i)) {
-                state.targets.delete(i); b.classList.remove('active'); 
+                state.targets.delete(i); b.classList.remove('active');
                 beep(440, 0.05);
             } else {
-                state.targets.add(i); b.classList.add('active'); 
+                state.targets.add(i); b.classList.add('active');
                 beep(880, 0.1);
             }
             if(!state.moving && state.targets.size > 0) drive();
@@ -321,7 +321,7 @@
             if(state.targets.has(state.floor)) {
                 state.moving = false; state.targets.delete(state.floor);
                 document.getElementById(`f-${state.floor}`).classList.remove('active');
-                beep(523, 0.4); 
+                beep(523, 0.4);
                 speak(`${state.floor}층입니다`);
                 await doorAction('open');
                 await new Promise(r => setTimeout(r, 2500));
@@ -360,7 +360,7 @@
     function checkPw() {
         if(pwBuf === "112") {
             state.unlocked = true; document.getElementById('cover').style.transform = "translateX(100%)";
-            addLog("기술자 인증 성공: 점검 패널 개방"); 
+            addLog("기술자 인증 성공: 점검 패널 개방");
             speak("엔지니어 인증되었습니다");
             closePw();
         } else { alert("인증 코드 오류"); pwBuf = ""; }
@@ -370,9 +370,9 @@
         state.estop = !state.estop; beep(200, 0.4, 'square', 0.1);
         document.getElementById('estop-btn').classList.toggle('pressed', state.estop);
         document.getElementById('estop-msg').style.display = state.estop ? 'block' : 'none';
-        if(state.estop) { 
-            state.targets.clear(); 
-            document.querySelectorAll('.btn').forEach(b=>b.classList.remove('active')); 
+        if(state.estop) {
+            state.targets.clear();
+            document.querySelectorAll('.btn').forEach(b=>b.classList.remove('active'));
             speak("비상 정지 시스템이 작동되었습니다");
         }
     }
@@ -388,15 +388,13 @@
                 state.targets.clear();
                 document.querySelectorAll('.btn').forEach(b=>b.classList.remove('active'));
                 speak("현재 점검 중이오니 계단을 이용해 주십시오.");
-            } else {
-                speak("시스템이 정상 가동됩니다.");
-            }
+            } else { speak("시스템이 정상 가동됩니다."); }
         }
-        else if(id === 'sw-insp') { 
-            state.insp = on; 
-            document.getElementById('status-txt').innerText = on ? "INSPECTION MODE" : "SYSTEM READY"; 
+        else if(id === 'sw-insp') {
+            state.insp = on;
+            document.getElementById('status-txt').innerText = on ? "INSPECTION MODE" : "SYSTEM READY";
             if(on) speak("점검 운전 모드 활성화");
-        } 
+        }
         else if(id === 'sw-fan') { playFanSound(on); }
         else if(id === 'sw-light') { document.getElementById('sim-view').classList.toggle('light-off', !on); }
         else if(id === 'sw-hold') { state.hold = on; }
@@ -418,19 +416,19 @@
 
     function stopManual() { if(mTimer) { clearInterval(mTimer); mTimer = null; } }
 
-    function addLog(msg) { 
-        const l = document.getElementById('log-box'); 
+    function addLog(msg) {
+        const l = document.getElementById('log-box');
         const now = new Date();
         const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
-        l.innerHTML = `<span style="color:#888;">[${time}]</span> ${msg}<br>` + l.innerHTML; 
+        l.innerHTML = `<span style="color:#888;">[${time}]</span> ${msg}<br>` + l.innerHTML;
     }
-    
-    function emergencyBell() { 
-        beep(440, 1, 'sawtooth'); 
+
+    function emergencyBell() {
+        beep(440, 1, 'sawtooth');
         speak("비상벨이 눌렸습니다. 관리실에 연결합니다.");
     }
 
-    addLog("시윤 엔지니어 시스템 V11 부팅 완료");
+    addLog("엘리베이터 시스템 V11 부팅 완료");
 </script>
 </body>
 </html>
