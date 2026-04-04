@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -6,255 +7,525 @@
     <title>슈퍼 보안 시스템</title>
     <style>
         :root {
-            --bg-color: #1a1a1a;
-            --panel-color: #2c3e50;
-            --lcd-bg: #222;
-            --lcd-text: #00ff41;
-            --lcd-alarm: #ff3e3e;
-            --btn-action: #3498db;
-            --btn-security: #e74c3c;
-            --btn-disarm: #f39c12;
-            --btn-number: #ecf0f1;
-            --accent: #f1c40f;
+            --bg: #1a1a1a; --panel: #2c3e50; --lcd-bg: #222;
+            --green: #00ff41; --btn-blue: #3498db; --btn-red: #e74c3c;
+            --btn-orange: #f39c12; --btn-num: #ecf0f1; --accent: #f1c40f;
         }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
-            background-color: var(--bg-color);
-            display: flex; justify-content: center; align-items: center;
-            height: 100vh; margin: 0;
+            background: var(--bg); display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0;
             font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
-            overflow: hidden; user-select: none;
+            padding: 12px; user-select: none;
         }
-        .security-device {
-            background-color: var(--panel-color);
-            width: min(380px, 95vw);
+        .device {
+            background: var(--panel); width: min(380px, 100%);
             padding: 20px; border-radius: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 2px 5px rgba(255,255,255,0.2);
-            border: 4px solid #34495e; text-align: center; position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,.5), inset 0 2px 5px rgba(255,255,255,.2);
+            border: 4px solid #34495e; text-align: center;
         }
-        .lcd-screen {
-            background-color: var(--lcd-bg); height: 110px; border-radius: 10px;
-            margin-bottom: 20px; padding: 15px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            border: 3px solid #111; transition: all 0.3s; position: relative; overflow: hidden;
-        }
-        #lock-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.9); display: none;
-            flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10; color: var(--accent); border-radius: 7px;
-        }
-        .lock-icon { font-size: 50px; margin-bottom: 5px; animation: bounce 1s infinite; }
-        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-        .lcd-screen.alarm-mode { background-color: #400; box-shadow: inset 0 0 20px #f00; border-color: #f00; }
-        #status-text { color: var(--lcd-text); font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; }
-        #input-display { color: var(--accent); font-size: 1.6rem; letter-spacing: 5px; height: 1.6rem; font-family: 'Courier New', monospace; }
-        .controls { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .btn-num {
-            background: var(--btn-number); border: none; padding: 15px;
-            font-size: 1.2rem; font-weight: bold; border-radius: 10px;
-            cursor: pointer; box-shadow: 0 4px #bdc3c7;
-        }
-        .btn-num:active { box-shadow: 0 0px #bdc3c7; transform: translateY(4px); }
-        .action-buttons { display: flex; flex-direction: column; gap: 8px; }
-        .btn-act {
-            padding: 12px 5px; border: none; border-radius: 8px; color: white;
-            font-weight: bold; cursor: pointer; box-shadow: 0 4px rgba(0,0,0,0.3); font-size: 0.9rem;
-        }
-        .btn-act.blue { background-color: var(--btn-action); }
-        .btn-act.red { background-color: var(--btn-security); }
-        .btn-act.orange { background-color: var(--btn-disarm); }
-        .btn-act:disabled { background-color: #555; cursor: not-allowed; box-shadow: none; }
-        .fingerprint-section {
-            background: #222; padding: 20px; border-radius: 20px; border: 2px solid #444;
-            cursor: pointer; position: relative; overflow: hidden;
-        }
-        .finger-icon { font-size: 50px; color: #555; transition: 0.3s; }
-        .scanning-light {
-            position: absolute; top: -100%; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(transparent, rgba(52,152,219,0.5), transparent); display: none;
-        }
-        .active-scan .scanning-light { display: block; animation: scan 1.2s infinite; }
-        @keyframes scan { 0%{top:-100%} 100%{top:100%} }
-        .active-scan .finger-icon { color: var(--btn-action); text-shadow: 0 0 15px var(--btn-action); }
-    </style>
+
+```
+    /* LCD */
+    .lcd {
+        background: var(--lcd-bg); height: 100px; border-radius: 10px;
+        margin-bottom: 16px; padding: 12px;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        border: 3px solid #111; transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .lcd.armed { background: #300; box-shadow: inset 0 0 20px #f00; border-color: #f00; }
+    .lcd.locked { background: #001a00; border-color: #00ff41; }
+    #status-text { color: var(--green); font-size: 1rem; font-weight: bold; margin-bottom: 4px; }
+    #input-display { color: var(--accent); font-size: 1.5rem; letter-spacing: 6px; height: 1.5rem; font-family: 'Courier New', monospace; }
+
+    /* 잠금 상태 오버레이 */
+    #lock-overlay {
+        position: absolute; inset: 0; background: rgba(0,0,0,.92);
+        display: none; flex-direction: column; justify-content: center; align-items: center;
+        z-index: 5; border-radius: 7px; gap: 4px;
+    }
+    .lock-big { font-size: 3rem; animation: bounce 1.2s infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    .lock-label { color: var(--accent); font-weight: bold; font-size: 0.9rem; }
+
+    /* 메인 컨트롤 */
+    .controls { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 14px; }
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .kbtn {
+        background: var(--btn-num); border: none; padding: 14px;
+        font-size: 1.2rem; font-weight: bold; border-radius: 10px;
+        cursor: pointer; box-shadow: 0 4px #bdc3c7;
+    }
+    .kbtn:active { box-shadow: none; transform: translateY(4px); }
+    .action-col { display: flex; flex-direction: column; gap: 7px; }
+    .abtn {
+        padding: 9px 5px; border: none; border-radius: 8px; color: white;
+        font-weight: bold; cursor: pointer; font-size: 0.82rem;
+        box-shadow: 0 3px rgba(0,0,0,.3);
+    }
+    .abtn:active { transform: translateY(2px); }
+    .abtn.blue { background: var(--btn-blue); }
+    .abtn.red { background: var(--btn-red); }
+    .abtn.orange { background: var(--btn-orange); }
+    .abtn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
+
+    /* 지문 */
+    .fingerprint {
+        background: #222; padding: 14px; border-radius: 18px; border: 2px solid #444;
+        cursor: pointer; position: relative; overflow: hidden; margin-bottom: 14px;
+    }
+    .finger-icon { font-size: 44px; color: #555; transition: 0.3s; }
+    .scan-light {
+        position: absolute; top: -100%; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(transparent, rgba(52,152,219,.5), transparent); display: none;
+    }
+    .scanning .scan-light { display: block; animation: scan 1.2s infinite; }
+    @keyframes scan { 0%{top:-100%} 100%{top:100%} }
+    .scanning .finger-icon { color: var(--btn-blue); text-shadow: 0 0 15px var(--btn-blue); }
+
+    /* 🔒 자물쇠 버튼 */
+    .lock-btn-row { display: flex; justify-content: center; }
+    .lock-toggle-btn {
+        background: #1a2a1a; border: 2px solid #2ecc71;
+        color: #2ecc71; border-radius: 50px; padding: 12px 32px;
+        font-size: 1rem; font-weight: bold; cursor: pointer;
+        display: flex; align-items: center; gap: 8px; font-family: inherit;
+        transition: 0.15s;
+    }
+    .lock-toggle-btn.locked-state {
+        background: #2a1a1a; border-color: #e74c3c; color: #e74c3c;
+    }
+    .lock-toggle-btn:active { transform: scale(0.96); }
+
+    /* 팝업 오버레이 */
+    .popup-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.88);
+        z-index: 200; display: none; align-items: center; justify-content: center;
+        padding: 16px;
+    }
+    .popup-overlay.show { display: flex; }
+    .popup-box {
+        background: #2c3e50; border-radius: 24px; padding: 22px;
+        width: min(340px, 100%); text-align: center;
+        border: 2px solid #3d5166;
+    }
+    .popup-title { color: var(--accent); font-size: 1.1rem; font-weight: bold; margin-bottom: 4px; }
+    .popup-hint { color: #888; font-size: 0.75rem; margin-bottom: 14px; line-height: 1.5; }
+    .popup-display {
+        background: #111; color: var(--accent); font-family: 'Courier New', monospace;
+        font-size: 2rem; letter-spacing: 10px; padding: 10px; border-radius: 10px;
+        margin-bottom: 14px; min-height: 54px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .popup-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .pbtn {
+        padding: 14px; background: #34495e; color: white; border: none;
+        border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+        font-family: inherit;
+    }
+    .pbtn:active { background: #4a6888; transform: scale(0.96); }
+    .pbtn.clear { background: #c0392b; }
+    .pbtn.ok { background: #27ae60; }
+    .popup-actions { display: flex; flex-direction: column; gap: 8px; }
+    .popup-main-btn {
+        width: 100%; padding: 13px; border: none; border-radius: 12px;
+        font-size: 0.95rem; font-weight: bold; cursor: pointer; font-family: inherit;
+    }
+    .popup-main-btn.confirm { background: #2980b9; color: white; }
+    .popup-main-btn.change { background: #34495e; color: #aaa; font-size: 0.85rem; }
+    .popup-main-btn.cancel { background: transparent; color: #666; font-size: 0.82rem; text-decoration: underline; }
+    .popup-main-btn:active { transform: scale(0.97); }
+    .popup-error { color: #e74c3c; font-size: 0.8rem; height: 1rem; margin-bottom: 8px; }
+</style>
+```
+
 </head>
 <body>
 
-<div class="security-device">
-    <div class="lcd-screen" id="lcd">
+<div class="device">
+    <!-- LCD -->
+    <div class="lcd" id="lcd">
         <div id="lock-overlay">
-            <div class="lock-icon">🔒</div>
-            <div style="font-weight:bold;font-size:0.9rem;">SYSTEM LOCKED</div>
+            <div class="lock-big">🔒</div>
+            <div class="lock-label">SYSTEM LOCKED</div>
         </div>
         <div id="status-text">시스템 대기 중...</div>
         <div id="input-display"></div>
     </div>
-    <div class="controls">
-        <div class="keypad">
-            <button class="btn-num" onclick="pressKey('1')">1</button>
-            <button class="btn-num" onclick="pressKey('2')">2</button>
-            <button class="btn-num" onclick="pressKey('3')">3</button>
-            <button class="btn-num" onclick="pressKey('4')">4</button>
-            <button class="btn-num" onclick="pressKey('5')">5</button>
-            <button class="btn-num" onclick="pressKey('6')">6</button>
-            <button class="btn-num" onclick="pressKey('7')">7</button>
-            <button class="btn-num" onclick="pressKey('8')">8</button>
-            <button class="btn-num" onclick="pressKey('9')">9</button>
-            <button class="btn-num" onclick="clearInput()" style="background:#e67e22;color:white;">C</button>
-            <button class="btn-num" onclick="pressKey('0')">0</button>
-            <button class="btn-num" onclick="pressKey('#')">#</button>
+
+```
+<!-- 메인 키패드 + 액션 버튼 -->
+<div class="controls">
+    <div class="keypad">
+        <button class="kbtn" onclick="pressKey('1')">1</button>
+        <button class="kbtn" onclick="pressKey('2')">2</button>
+        <button class="kbtn" onclick="pressKey('3')">3</button>
+        <button class="kbtn" onclick="pressKey('4')">4</button>
+        <button class="kbtn" onclick="pressKey('5')">5</button>
+        <button class="kbtn" onclick="pressKey('6')">6</button>
+        <button class="kbtn" onclick="pressKey('7')">7</button>
+        <button class="kbtn" onclick="pressKey('8')">8</button>
+        <button class="kbtn" onclick="pressKey('9')">9</button>
+        <button class="kbtn" onclick="clearInput()" style="background:#e67e22;color:white;">C</button>
+        <button class="kbtn" onclick="pressKey('0')">0</button>
+        <button class="kbtn" onclick="pressKey('#')" style="background:#95a5a6;">#</button>
+    </div>
+    <div class="action-col">
+        <button class="abtn blue action-btn" onclick="prepareAction('출근')">출근</button>
+        <button class="abtn blue action-btn" onclick="prepareAction('퇴근')">퇴근</button>
+        <button class="abtn blue action-btn" onclick="prepareAction('외출')">외출</button>
+        <button class="abtn red action-btn" onclick="prepareAction('경비')">경비</button>
+        <button class="abtn orange action-btn" onclick="prepareAction('해제')">해제</button>
+    </div>
+</div>
+
+<!-- 지문 인식 -->
+<div class="fingerprint" id="scanner" onclick="scanFingerprint()">
+    <div class="scan-light"></div>
+    <div class="finger-icon">☝</div>
+    <div style="color:#888;font-size:.7rem;margin-top:4px;">지문 인식 센서</div>
+</div>
+
+<!-- 🔒 자물쇠 버튼 -->
+<div class="lock-btn-row">
+    <button class="lock-toggle-btn" id="lockBtn" onclick="openLockPopup()">
+        <span id="lockBtnIcon">🔓</span>
+        <span id="lockBtnText">잠금 설정</span>
+    </button>
+</div>
+```
+
+</div>
+
+<!-- 잠금/해제 팝업 -->
+
+<div class="popup-overlay" id="lockPopup">
+    <div class="popup-box">
+        <div class="popup-title" id="popupTitle">🔒 잠금 설정</div>
+        <div class="popup-hint" id="popupHint">비밀번호를 입력하세요<br><span style="color:#f39c12;">초기 비밀번호는 0000 입니다</span></div>
+        <div class="popup-display" id="popupDisplay">----</div>
+        <div class="popup-keypad">
+            <button class="pbtn" onclick="popupKey('1')">1</button>
+            <button class="pbtn" onclick="popupKey('2')">2</button>
+            <button class="pbtn" onclick="popupKey('3')">3</button>
+            <button class="pbtn" onclick="popupKey('4')">4</button>
+            <button class="pbtn" onclick="popupKey('5')">5</button>
+            <button class="pbtn" onclick="popupKey('6')">6</button>
+            <button class="pbtn" onclick="popupKey('7')">7</button>
+            <button class="pbtn" onclick="popupKey('8')">8</button>
+            <button class="pbtn" onclick="popupKey('9')">9</button>
+            <button class="pbtn clear" onclick="popupKey('C')">C</button>
+            <button class="pbtn" onclick="popupKey('0')">0</button>
+            <button class="pbtn ok" onclick="popupKey('OK')">✓</button>
         </div>
-        <div class="action-buttons">
-            <button class="btn-act blue action-btn" onclick="prepareAction('출근')">출근</button>
-            <button class="btn-act blue action-btn" onclick="prepareAction('퇴근')">퇴근</button>
-            <button class="btn-act blue action-btn" onclick="prepareAction('외출')">외출</button>
-            <button class="btn-act red action-btn" onclick="prepareAction('경비')">경비</button>
-            <button class="btn-act orange action-btn" onclick="prepareAction('해제')">해제</button>
+        <div class="popup-error" id="popupError"></div>
+        <div class="popup-actions">
+            <button class="popup-main-btn confirm" onclick="popupKey('OK')">확인</button>
+            <button class="popup-main-btn change" onclick="openChangePopup()">🔑 비밀번호 변경</button>
+            <button class="popup-main-btn cancel" onclick="closePopups()">취소</button>
         </div>
     </div>
-    <div class="fingerprint-section" id="scanner" onclick="scanFingerprint()">
-        <div class="scanning-light"></div>
-        <div class="finger-icon">☝</div>
-        <div style="color:#888;font-size:0.7rem;margin-top:5px;">지문 인식 센서</div>
+</div>
+
+<!-- 비밀번호 변경 팝업 -->
+
+<div class="popup-overlay" id="changePopup">
+    <div class="popup-box">
+        <div class="popup-title">🔑 비밀번호 변경</div>
+        <div class="popup-hint" id="changeHint">현재 비밀번호를 입력하세요</div>
+        <div class="popup-display" id="changeDisplay">----</div>
+        <div class="popup-keypad">
+            <button class="pbtn" onclick="changeKey('1')">1</button>
+            <button class="pbtn" onclick="changeKey('2')">2</button>
+            <button class="pbtn" onclick="changeKey('3')">3</button>
+            <button class="pbtn" onclick="changeKey('4')">4</button>
+            <button class="pbtn" onclick="changeKey('5')">5</button>
+            <button class="pbtn" onclick="changeKey('6')">6</button>
+            <button class="pbtn" onclick="changeKey('7')">7</button>
+            <button class="pbtn" onclick="changeKey('8')">8</button>
+            <button class="pbtn" onclick="changeKey('9')">9</button>
+            <button class="pbtn clear" onclick="changeKey('C')">C</button>
+            <button class="pbtn" onclick="changeKey('0')">0</button>
+            <button class="pbtn ok" onclick="changeKey('OK')">✓</button>
+        </div>
+        <div class="popup-error" id="changeError"></div>
+        <div class="popup-actions">
+            <button class="popup-main-btn confirm" onclick="changeKey('OK')">확인</button>
+            <button class="popup-main-btn cancel" onclick="backToLockPopup()">← 뒤로</button>
+        </div>
     </div>
 </div>
 
 <script>
-    let currentInput = "";
-    let pendingAction = "";
-    let isArmed = false;
+    // ===== 상태 =====
+    let password = localStorage.getItem('secomPw') || '0000';
     let isLocked = false;
-    // AudioContext는 사용자 터치 후 생성 (브라우저 정책 대응)
+    let isArmed = false;
+    let pendingAction = '';
+    let currentInput = '';
     let audioCtx = null;
 
-    const statusText = document.getElementById('status-text');
-    const inputDisplay = document.getElementById('input-display');
-    const scanner = document.getElementById('scanner');
-    const lcd = document.getElementById('lcd');
-    const lockOverlay = document.getElementById('lock-overlay');
-    const actionBtns = document.querySelectorAll('.action-btn');
+    // 팝업 입력 상태
+    let popupBuf = '';
+    let changeBuf = '';
+    let changeStep = 'current'; // 'current' | 'new' | 'confirm'
+    let changeFirst = '';
 
+    // ===== 오디오 =====
     function getAudio() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
         return audioCtx;
     }
-
-    function playBeep(freq = 880, dur = 0.1, type = 'square') {
+    function beep(freq=880, dur=0.1, type='square') {
         try {
             const ctx = getAudio();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, ctx.currentTime);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.start(); osc.stop(ctx.currentTime + dur);
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.type = type; o.frequency.value = freq;
+            g.gain.setValueAtTime(0.08, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+            o.connect(g); g.connect(ctx.destination);
+            o.start(); o.stop(ctx.currentTime + dur);
         } catch(e) {}
     }
-
-    function pressKey(num) {
-        if (num === '#') { checkPassword(); return; }
-        playBeep(1000, 0.05);
-        if (currentInput.length < 8) {
-            currentInput += num;
-            inputDisplay.innerText = currentInput;
-        }
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ko-KR'; u.rate = 1.1;
+        window.speechSynthesis.speak(u);
     }
 
-    function checkPassword() {
-        if (currentInput === '112') {
+    // ===== 메인 키패드 =====
+    function pressKey(k) {
+        if (k === '#') { return; } // # 은 사용 안 함 (자물쇠 버튼으로 대체)
+        beep(1000, 0.05);
+        if (currentInput.length < 8) {
+            currentInput += k;
+            document.getElementById('input-display').innerText = '*'.repeat(currentInput.length);
+        }
+    }
+    function clearInput() {
+        beep(400, 0.08);
+        currentInput = '';
+        document.getElementById('input-display').innerText = '';
+    }
+
+    // ===== 자물쇠 버튼 =====
+    function openLockPopup() {
+        beep(600, 0.08);
+        popupBuf = '';
+        updatePopupDisplay();
+        document.getElementById('popupError').textContent = '';
+
+        const title = document.getElementById('popupTitle');
+        const hint = document.getElementById('popupHint');
+        if (isLocked) {
+            title.textContent = '🔓 잠금 해제';
+            hint.innerHTML = '비밀번호를 입력하세요<br><span style="color:#f39c12;">초기 비밀번호는 0000 입니다</span>';
+        } else {
+            title.textContent = '🔒 잠금 설정';
+            hint.innerHTML = '비밀번호를 입력하세요<br><span style="color:#f39c12;">초기 비밀번호는 0000 입니다</span>';
+        }
+        document.getElementById('lockPopup').classList.add('show');
+    }
+
+    function closePopups() {
+        document.getElementById('lockPopup').classList.remove('show');
+        document.getElementById('changePopup').classList.remove('show');
+        popupBuf = '';
+        changeBuf = '';
+        changeStep = 'current';
+        changeFirst = '';
+    }
+
+    function backToLockPopup() {
+        document.getElementById('changePopup').classList.remove('show');
+        changeBuf = '';
+        changeStep = 'current';
+        changeFirst = '';
+        openLockPopup();
+    }
+
+    // 팝업 키패드
+    function popupKey(k) {
+        beep(800, 0.05);
+        if (k === 'C') {
+            popupBuf = '';
+            updatePopupDisplay();
+            document.getElementById('popupError').textContent = '';
+            return;
+        }
+        if (k === 'OK') { confirmLock(); return; }
+        if (popupBuf.length < 8) {
+            popupBuf += k;
+            updatePopupDisplay();
+        }
+    }
+    function updatePopupDisplay() {
+        const d = document.getElementById('popupDisplay');
+        d.textContent = popupBuf.length > 0 ? '*'.repeat(popupBuf.length) : '----';
+    }
+
+    function confirmLock() {
+        if (popupBuf.length < 1) return;
+        if (popupBuf === password) {
+            closePopups();
             toggleLock();
         } else {
-            playBeep(200, 0.3, 'sawtooth');
-            speak("비밀번호가 틀렸습니다.");
-            clearInput();
+            beep(200, 0.4, 'sawtooth');
+            document.getElementById('popupError').textContent = '❌ 비밀번호가 틀렸습니다';
+            popupBuf = '';
+            updatePopupDisplay();
+            // 에러 메시지 2초 후 사라짐
+            setTimeout(() => { document.getElementById('popupError').textContent = ''; }, 2000);
         }
     }
 
+    // ===== 잠금 토글 =====
     function toggleLock() {
         isLocked = !isLocked;
-        clearInput();
+        const lockOverlay = document.getElementById('lock-overlay');
+        const lockBtn = document.getElementById('lockBtn');
+        const lockBtnIcon = document.getElementById('lockBtnIcon');
+        const lockBtnText = document.getElementById('lockBtnText');
+        const actionBtns = document.querySelectorAll('.action-btn');
+        const lcd = document.getElementById('lcd');
+
         if (isLocked) {
-            playBeep(400, 0.5, 'sine');
-            setTimeout(() => playBeep(300, 0.5, 'sine'), 200);
             lockOverlay.style.display = 'flex';
-            actionBtns.forEach(btn => btn.disabled = true);
-            speak("시스템을 잠급니다. 접근할 수 없습니다.");
+            lockBtn.classList.add('locked-state');
+            lockBtnIcon.textContent = '🔒';
+            lockBtnText.textContent = '잠금 해제';
+            actionBtns.forEach(b => b.disabled = true);
+            lcd.classList.add('locked');
+            beep(350, 0.4, 'sine'); setTimeout(() => beep(280, 0.5, 'sine'), 200);
+            speak("시스템을 잠급니다.");
         } else {
-            playBeep(800, 0.1);
-            setTimeout(() => playBeep(1200, 0.2), 100);
             lockOverlay.style.display = 'none';
-            actionBtns.forEach(btn => btn.disabled = false);
-            speak("시스템 잠금이 해제되었습니다. 환영합니다.");
+            lockBtn.classList.remove('locked-state');
+            lockBtnIcon.textContent = '🔓';
+            lockBtnText.textContent = '잠금 설정';
+            actionBtns.forEach(b => b.disabled = false);
+            lcd.classList.remove('locked');
+            beep(880, 0.08); setTimeout(() => beep(1200, 0.15), 100);
+            speak("잠금이 해제되었습니다. 환영합니다.");
+            updateStatus(isArmed ? "경비 중 - 접근 금지" : "시스템 대기 중...");
         }
     }
 
-    function clearInput() {
-        playBeep(400, 0.1);
-        currentInput = "";
-        inputDisplay.innerText = "";
+    // ===== 비밀번호 변경 =====
+    function openChangePopup() {
+        document.getElementById('lockPopup').classList.remove('show');
+        changeBuf = ''; changeStep = 'current'; changeFirst = '';
+        document.getElementById('changeHint').textContent = '현재 비밀번호를 입력하세요';
+        document.getElementById('changeError').textContent = '';
+        updateChangeDisplay();
+        document.getElementById('changePopup').classList.add('show');
     }
 
+    function changeKey(k) {
+        beep(800, 0.05);
+        if (k === 'C') {
+            changeBuf = '';
+            updateChangeDisplay();
+            document.getElementById('changeError').textContent = '';
+            return;
+        }
+        if (k === 'OK') { confirmChange(); return; }
+        if (changeBuf.length < 8) {
+            changeBuf += k;
+            updateChangeDisplay();
+        }
+    }
+    function updateChangeDisplay() {
+        const d = document.getElementById('changeDisplay');
+        d.textContent = changeBuf.length > 0 ? '*'.repeat(changeBuf.length) : '----';
+    }
+
+    function confirmChange() {
+        if (changeBuf.length < 1) return;
+        if (changeStep === 'current') {
+            if (changeBuf !== password) {
+                beep(200, 0.4, 'sawtooth');
+                document.getElementById('changeError').textContent = '❌ 현재 비밀번호가 틀렸습니다';
+                changeBuf = ''; updateChangeDisplay();
+                setTimeout(() => { document.getElementById('changeError').textContent = ''; }, 2000);
+                return;
+            }
+            changeStep = 'new'; changeFirst = ''; changeBuf = '';
+            document.getElementById('changeHint').textContent = '새 비밀번호를 입력하세요 (4~8자리)';
+            document.getElementById('changeError').textContent = '';
+            updateChangeDisplay();
+        } else if (changeStep === 'new') {
+            if (changeBuf.length < 4) {
+                document.getElementById('changeError').textContent = '❌ 4자리 이상 입력하세요';
+                return;
+            }
+            changeFirst = changeBuf; changeBuf = '';
+            changeStep = 'confirm';
+            document.getElementById('changeHint').textContent = '새 비밀번호를 한 번 더 입력하세요';
+            document.getElementById('changeError').textContent = '';
+            updateChangeDisplay();
+        } else if (changeStep === 'confirm') {
+            if (changeBuf !== changeFirst) {
+                beep(200, 0.4, 'sawtooth');
+                document.getElementById('changeError').textContent = '❌ 비밀번호가 일치하지 않습니다';
+                changeBuf = ''; updateChangeDisplay();
+                setTimeout(() => { document.getElementById('changeError').textContent = ''; }, 2000);
+                return;
+            }
+            // 성공
+            password = changeFirst;
+            localStorage.setItem('secomPw', password);
+            closePopups();
+            beep(1200, 0.15); setTimeout(() => beep(1500, 0.2), 150);
+            speak("비밀번호가 변경되었습니다.");
+            updateStatus("비밀번호 변경 완료!");
+            setTimeout(() => updateStatus(isArmed ? "경비 중 - 접근 금지" : "시스템 대기 중..."), 2500);
+        }
+    }
+
+    // ===== 액션 버튼 =====
     function prepareAction(action) {
         if (isLocked) return;
         if (isArmed && action !== '해제') {
-            playBeep(200, 0.3);
-            statusText.innerText = "경비 해제 필요!";
-            speak("경비 모드입니다. 먼저 해제하세요.");
-            return;
+            beep(200, 0.3); updateStatus("경비 해제 필요!");
+            speak("경비 모드입니다. 먼저 해제하세요."); return;
         }
-        playBeep(1200, 0.1);
+        beep(1200, 0.1);
         pendingAction = action;
-        statusText.innerText = "지문 인식 대기...";
-        scanner.classList.add('active-scan');
+        updateStatus("지문 인식 대기...");
+        document.getElementById('scanner').classList.add('scanning');
     }
 
     function scanFingerprint() {
-        if (isLocked || !pendingAction) {
-            if (!isLocked) playBeep(300, 0.2);
-            return;
-        }
-        playBeep(1500, 0.1);
-        setTimeout(() => playBeep(2000, 0.1), 100);
-        let msg = "";
+        if (isLocked || !pendingAction) { if (!isLocked) beep(300, 0.15); return; }
+        beep(1500, 0.08); setTimeout(() => beep(2000, 0.12), 100);
         if (pendingAction === '경비') {
             isArmed = true;
-            msg = "경비 시스템 가동. 무단 침입을 감시합니다.";
-            lcd.classList.add('alarm-mode');
-            statusText.innerText = "경비 중 - 접근 금지";
+            document.getElementById('lcd').classList.add('armed');
+            updateStatus("경비 중 - 접근 금지");
+            speak("경비 시스템 가동. 무단 침입을 감시합니다.");
         } else if (pendingAction === '해제') {
             isArmed = false;
-            msg = "경비가 성공적으로 해제되었습니다.";
-            lcd.classList.remove('alarm-mode');
-            statusText.innerText = "경비 해제 완료";
+            document.getElementById('lcd').classList.remove('armed');
+            updateStatus("경비 해제 완료");
+            speak("경비가 해제되었습니다.");
         } else {
-            msg = `${pendingAction} 처리가 완료되었습니다.`;
-            statusText.innerText = msg;
+            updateStatus(`${pendingAction} 처리 완료`);
+            speak(`${pendingAction} 처리가 완료되었습니다.`);
         }
-        speak(msg);
-        finishProcess();
-    }
-
-    function finishProcess() {
-        scanner.classList.remove('active-scan');
-        pendingAction = "";
-        currentInput = "";
-        inputDisplay.innerText = "";
+        document.getElementById('scanner').classList.remove('scanning');
+        pendingAction = '';
         setTimeout(() => {
-            if (!isLocked) statusText.innerText = isArmed ? "경비 중 - 접근 금지" : "시스템 대기 중...";
+            if (!isLocked) updateStatus(isArmed ? "경비 중 - 접근 금지" : "시스템 대기 중...");
         }, 3000);
     }
 
-    function speak(text) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'ko-KR'; utterance.rate = 1.1;
-        window.speechSynthesis.speak(utterance);
+    function updateStatus(msg) {
+        document.getElementById('status-text').innerText = msg;
     }
 </script>
+
 </body>
 </html>
