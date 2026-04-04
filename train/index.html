@@ -1,353 +1,302 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AREX 시뮬레이터 v3.0</title>
+    <title>AREX 시뮬레이터 v2.7</title>
     <style>
         :root {
-            --bg: #0b131a;
-            --panel: #1a2535;
-            --panel2: #2c3e50;
-            --border: #2a3f55;
-            --blue: #0097da;
-            --green: #2ecc71;
-            --red: #e74c3c;
-            --orange: #f39c12;
-            --text: #ecf0f1;
-            --muted: #7f8c8d;
+            --panel-bg: #2c3e50;
+            --screen-bg: #0b131a;
+            --accent-blue: #0097da;
+            --led-green: #2ecc71;
+            --led-red: #e74c3c;
+            --warning-orange: #f39c12;
+            --text-color: #ecf0f1;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        html, body {
+
+        body, html {
+            margin: 0; padding: 0;
             width: 100%; height: 100dvh;
-            background: var(--bg);
+            background-color: #111;
             font-family: 'Pretendard', -apple-system, sans-serif;
-            color: var(--text);
-            overflow: hidden; user-select: none; touch-action: none;
+            color: var(--text-color);
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
         }
 
-```
-    .cab {
-        display: flex;
-        flex-direction: column;
-        height: 100dvh;
-        padding: env(safe-area-inset-top, 4px) 10px env(safe-area-inset-bottom, 4px) 10px;
-        gap: 6px;
-    }
+        /* 전체 레이아웃 구획 */
+        .cab-container {
+            display: grid;
+            grid-template-rows: 40px 1fr 90px;
+            height: 100dvh;
+            gap: 5px;
+            padding: 5px 10px;
+            box-sizing: border-box;
+        }
 
-    /* ── 상단 바 ── */
-    .top-bar {
-        flex-shrink: 0;
-        background: #111;
-        border-radius: 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        border: 1px solid var(--border);
-        gap: 8px;
-    }
-    .route-select {
-        background: #1a2535; color: var(--text);
-        border: 1px solid var(--border); border-radius: 6px;
-        padding: 4px 6px; font-size: 0.72rem; flex-shrink: 0;
-    }
-    .station-board {
-        flex: 1; text-align: center;
-        background: #000; border: 1px solid var(--blue);
-        border-radius: 6px; padding: 4px 8px;
-    }
-    .station-board .next-label { font-size: 0.58rem; color: var(--muted); }
-    .station-board .next-name { font-size: 0.85rem; font-weight: bold; color: var(--green); }
-    .clock { font-family: monospace; font-size: 0.72rem; color: var(--muted); flex-shrink: 0; }
+        /* 1. 상단 바 */
+        .top-bar {
+            background: #222;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            font-size: 0.75rem;
+            border-bottom: 2px solid #444;
+        }
 
-    /* ── 속도계 ── */
-    .speed-section {
-        flex-shrink: 0;
-        background: #000;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px;
-        gap: 16px;
-    }
-    .speed-display { text-align: center; }
-    .speed-num {
-        font-size: clamp(3rem, 14vw, 4.5rem);
-        font-family: 'Courier New', monospace;
-        color: var(--green);
-        line-height: 1;
-        font-weight: bold;
-    }
-    .speed-num.eb { color: var(--red); animation: blink .5s infinite; }
-    .speed-unit { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+        .station-display {
+            background: #000;
+            padding: 2px 10px;
+            border: 1px solid var(--accent-blue);
+            border-radius: 4px;
+            color: var(--led-green);
+            font-weight: bold;
+        }
 
-    /* 속도 게이지 바 */
-    .speed-bar-wrap { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    .bar-row { display: flex; align-items: center; gap: 6px; font-size: 0.65rem; color: var(--muted); }
-    .bar-bg { flex: 1; height: 8px; background: #1a2535; border-radius: 4px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 4px; transition: width .15s; }
+        /* 2. 메인 조작부 (슬라이더 겹침 방지 핵심) */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr 1fr;
+            gap: 8px;
+            min-height: 0;
+        }
 
-    /* ── 객실 현황 ── */
-    .occupancy-board {
-        flex-shrink: 0;
-        background: var(--panel);
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        padding: 5px 8px;
-        gap: 3px;
-    }
-    .car-unit { flex: 1; text-align: center; font-size: 0.5rem; color: var(--muted); }
-    .car-bar-bg { width: 80%; height: 18px; background: #111; border-radius: 3px; margin: 2px auto; position: relative; overflow: hidden; }
-    .car-bar-fill { position: absolute; bottom: 0; left: 0; right: 0; background: var(--green); transition: height .3s; }
-    .car-door-ind { height: 3px; border-radius: 1px; margin-top: 2px; background: var(--green); transition: background .3s; }
-    .car-door-ind.open { background: var(--red); animation: blink .5s infinite; }
+        .lever-area {
+            background: var(--panel-bg);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            padding: 8px;
+            border: 1px solid #444;
+            position: relative;
+            overflow: hidden; /* 영역 밖으로 나가는 슬라이더 차단 */
+        }
 
-    /* ── TCMS 상태 ── */
-    .tcms-section {
-        flex-shrink: 0;
-        background: var(--panel);
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        padding: 8px 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-    }
-    .tcms-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; }
-    .tcms-status { display: flex; gap: 10px; }
-    .tcms-item { font-size: 0.68rem; }
-    .tcms-btns { display: flex; gap: 6px; }
-    .tcms-btn {
-        background: #34495e; color: white; border: none;
-        padding: 5px 10px; border-radius: 6px; font-size: 0.65rem;
-        font-family: inherit; cursor: pointer;
-    }
-    .tcms-btn.active { background: var(--blue); }
+        .lever-wrapper {
+            position: relative;
+            width: 40px;
+            height: 100px; /* 높이 고정 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-    /* ── 레버 구역 ── */
-    .lever-section {
-        flex: 1;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        min-height: 0;
-    }
-    .lever-panel {
-        background: var(--panel2);
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 8px;
-        gap: 6px;
-    }
-    .lever-title { font-size: 0.68rem; font-weight: bold; }
-    .lever-wrap {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-    }
-    input[type=range].vlever {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 120px;
-        height: 28px;
-        background: #111;
-        transform: rotate(-90deg);
-        border-radius: 14px;
-        border: 2px solid #555;
-        outline: none;
-    }
-    input[type=range].vlever::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 32px; height: 32px;
-        background: #bdc3c7;
-        border-radius: 4px;
-        border: 2px solid #7f8c8d;
-    }
-    .lever-val {
-        font-size: 1.2rem; font-weight: bold;
-        padding: 3px 10px; background: #000; border-radius: 6px;
-        min-width: 52px; text-align: center;
-    }
-    .lever-btns { display: flex; flex-direction: column; gap: 5px; width: 100%; }
-    .lbtn {
-        width: 100%; padding: 9px 4px; border: none; border-radius: 8px;
-        font-weight: bold; font-size: 0.72rem; color: white;
-        font-family: inherit; cursor: pointer;
-    }
-    .lbtn:active { filter: brightness(1.2); transform: scale(0.97); }
-    .lbtn:disabled { opacity: 0.2; cursor: not-allowed; transform: none; }
-    .lbtn-door-open { background: #f1c40f; color: #111; }
-    .lbtn-door-close { background: #7f8c8d; }
-    .lbtn-arrive { background: #c0392b; }
-    .lbtn-eb { background: linear-gradient(135deg, #ff4d4d, #990000); }
-    .lbtn-eb-release { background: #e67e22; animation: blink .8s infinite; display: none; }
+        /* 슬라이더 스타일 및 위치 고정 */
+        input[type=range].vertical-lever {
+            appearance: none;
+            width: 100px; /* 높이와 동일하게 */
+            height: 30px;
+            background: #111;
+            transform: rotate(-90deg);
+            border-radius: 15px;
+            border: 2px solid #555;
+            outline: none;
+            margin: 0;
+        }
 
-    /* ── 하단 무전기/안내방송 ── */
-    .bottom-bar {
-        flex-shrink: 0;
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 8px;
-    }
-    .radio-box {
-        background: #1e1e1e; border: 2px solid var(--border);
-        border-radius: 10px; display: flex; align-items: center;
-        padding: 6px 8px; gap: 8px;
-    }
-    .ptt-btn {
-        width: 38px; height: 38px; background: #c0392b;
-        border-radius: 6px; border: none; cursor: pointer; flex-shrink: 0;
-    }
-    .ptt-btn:active { background: #ff2222; }
-    .radio-status { font-size: 0.62rem; color: var(--muted); }
-    .radio-status strong { display: block; color: var(--text); font-size: 0.68rem; }
-    .ann-grid {
-        background: var(--panel2); border-radius: 10px;
-        display: grid; grid-template-columns: repeat(3, 1fr);
-        gap: 5px; padding: 6px;
-    }
-    .ann-btn {
-        background: #34495e; color: white; border: 1px solid #555;
-        border-radius: 6px; font-size: 0.68rem; padding: 6px 2px;
-        font-family: inherit; cursor: pointer;
-    }
-    .ann-btn:active { background: var(--blue); }
-    .ann-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+        input[type=range].vertical-lever::-webkit-slider-thumb {
+            appearance: none;
+            width: 35px; height: 35px;
+            background: #bdc3c7;
+            border-radius: 4px;
+            border: 2px solid #7f8c8d;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
 
-    @keyframes blink { 50% { opacity: 0.3; } }
-</style>
-```
+        .lever-val {
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 2px 8px;
+            background: #000;
+            border-radius: 4px;
+        }
 
+        /* 중앙 화면 레이아웃 */
+        .center-display {
+            display: grid;
+            grid-template-rows: 1fr 55px 1.2fr;
+            gap: 5px;
+            min-height: 0;
+        }
+
+        .gauge-panel {
+            background: #000;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #333;
+        }
+
+        .speed-digit {
+            font-size: 2.8rem;
+            font-family: 'Courier New', monospace;
+            color: var(--led-green);
+            line-height: 1;
+        }
+
+        /* 객실 현황판 최적화 */
+        .train-occupancy-board {
+            background: #151e27;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 2px;
+            border: 1px solid #444;
+        }
+
+        .car-unit {
+            flex: 1;
+            margin: 0 1px;
+            background: #2c3e50;
+            border-radius: 2px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.5rem;
+        }
+
+        .occupancy-bar-bg {
+            width: 60%; height: 15px;
+            background: #111;
+            position: relative;
+        }
+
+        .car-door-indicator {
+            width: 100%; height: 2px; margin-top: 1px;
+            background: var(--led-green);
+        }
+        .car-door-indicator.open { background: var(--led-red); animation: blink 0.5s infinite; }
+
+        /* TCMS 텍스트 가독성 */
+        .tcms-panel {
+            background: var(--screen-bg);
+            border-radius: 6px;
+            padding: 5px;
+            border: 1px solid #444;
+            font-size: 0.65rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tcms-screen { flex: 1; overflow: hidden; white-space: nowrap; }
+
+        .tcms-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+        .tcms-btn { background: #34495e; color: white; border: none; padding: 4px; border-radius: 3px; font-size: 0.6rem; }
+        .tcms-btn.active { background: var(--accent-blue); }
+
+        /* 3. 하단 버튼 구획 */
+        .bottom-panel {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 8px;
+        }
+
+        .radio-box { 
+            background: #1e1e1e; border: 2px solid #444; border-radius: 8px; 
+            display: flex; align-items: center; padding: 5px; gap: 5px;
+        }
+        .ptt-btn { width: 40px; height: 100%; background: #c0392b; border-radius: 4px; }
+        
+        .ann-grid { 
+            background: #2c3e50; border-radius: 8px; 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 5px;
+        }
+
+        .ann-btn { background: #34495e; color: white; border: 1px solid #555; border-radius: 4px; font-size: 0.75rem; }
+        .rect-btn { width: 100%; padding: 8px 0; border: none; border-radius: 4px; font-weight: bold; font-size: 0.75rem; color: white; }
+        .rect-btn:disabled { opacity: 0.2; }
+
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
 </head>
 <body>
-<div class="cab">
 
-```
-<!-- 상단 바 -->
-<div class="top-bar">
-    <select id="routeSelect" class="route-select" onchange="initRoute()">
-        <option value="toIncheon">인천공항2터미널 행</option>
-        <option value="toSeoul">서울역 행</option>
-    </select>
-    <div class="station-board">
-        <div class="next-label">다음 정류장</div>
-        <div class="next-name" id="nextStation">서울역</div>
-    </div>
-    <div class="clock" id="clock">00:00:00</div>
-</div>
+<div class="cab-container">
+    <header class="top-bar">
+        <select id="routeSelect" onchange="initRoute()" style="font-size: 0.7rem; background:#000; color:#fff; border:1px solid #555;">
+            <option value="toIncheon">인천공항2터미널 행</option>
+            <option value="toSeoul">서울역 행</option>
+        </select>
+        <div class="station-display">NEXT: <span id="nextStation">서울역</span></div>
+        <div id="clock" style="font-family: monospace; font-size:0.7rem;">00:00:00</div>
+    </header>
 
-<!-- 속도계 -->
-<div class="speed-section">
-    <div class="speed-display">
-        <div class="speed-num" id="speedDisp">0</div>
-        <div class="speed-unit">km/h</div>
-    </div>
-    <div class="speed-bar-wrap">
-        <div class="bar-row">
-            <span style="color:var(--green);width:28px">출력</span>
-            <div class="bar-bg"><div class="bar-fill" id="pwrBar" style="background:var(--green);width:0%"></div></div>
-            <span id="pwrValDisp" style="width:24px;text-align:right">P0</span>
-        </div>
-        <div class="bar-row">
-            <span style="color:var(--red);width:28px">제동</span>
-            <div class="bar-bg"><div class="bar-fill" id="brkBar" style="background:var(--red);width:100%"></div></div>
-            <span id="brkValDisp" style="width:24px;text-align:right">B8</span>
-        </div>
-        <div class="bar-row">
-            <span style="color:var(--orange);width:28px">속도</span>
-            <div class="bar-bg"><div class="bar-fill" id="spdBar" style="background:var(--orange);width:0%"></div></div>
-            <span id="spdPct" style="width:24px;text-align:right">0%</span>
-        </div>
-    </div>
-</div>
+    <main class="main-content">
+        <!-- 가속 패널 -->
+        <section class="lever-area">
+            <div style="font-weight:bold; color:var(--led-green); font-size:0.7rem;">주간제어기</div>
+            <div class="lever-wrapper">
+                <input type="range" id="pwrLev" class="vertical-lever" min="0" max="5" value="0">
+            </div>
+            <div id="pwrVal" class="lever-val" style="color:var(--led-green)">P0</div>
+            <div style="width:100%; display:flex; flex-direction:column; gap:3px;">
+                <button class="rect-btn" style="background:#f1c40f; color:black" onclick="handleDoor(true)">문 열림</button>
+                <button class="rect-btn" style="background:#7f8c8d" onclick="handleDoor(false)">문 닫힘</button>
+            </div>
+        </section>
 
-<!-- 객실 현황 -->
-<div class="occupancy-board" id="occupancyBoard"></div>
+        <!-- 중앙 모니터 -->
+        <section class="center-display">
+            <div class="gauge-panel">
+                <div class="speed-digit" id="speedDisp">0</div>
+                <div style="color:#666; font-size:0.6rem">km/h</div>
+            </div>
 
-<!-- TCMS 상태 -->
-<div class="tcms-section">
-    <div class="tcms-row">
-        <div class="tcms-status">
-            <div class="tcms-item" id="doorStatus" style="color:var(--red)">● 출입문: 열림</div>
-            <div class="tcms-item" id="hvacStatus">● 냉난방: 정지</div>
-        </div>
-        <div class="tcms-btns">
-            <button class="tcms-btn" id="btnHvac" onclick="toggleTcms('hvac')">냉난방</button>
-            <button class="tcms-btn" id="btnLight" onclick="toggleTcms('light')">조명</button>
-        </div>
-    </div>
-    <div class="tcms-row">
-        <div class="tcms-item" id="lightStatus">● 객실조명: 소등</div>
-        <div class="tcms-item" id="arriveLockStatus" style="color:var(--orange)">● 출발대기</div>
-    </div>
-</div>
+            <div class="train-occupancy-board" id="occupancyBoard"></div>
 
-<!-- 레버 구역 (주간제어기 + 제동변환기) -->
-<div class="lever-section">
-    <!-- 주간제어기 (가속) -->
-    <div class="lever-panel">
-        <div class="lever-title" style="color:var(--green)">⚡ 주간제어기</div>
-        <div class="lever-wrap">
-            <input type="range" id="pwrLev" class="vlever" min="0" max="5" value="0">
-        </div>
-        <div class="lever-val" id="pwrVal" style="color:var(--green)">P0</div>
-        <div class="lever-btns">
-            <button class="lbtn lbtn-door-open" onclick="handleDoor(true)">🚪 문 열림</button>
-            <button class="lbtn lbtn-door-close" onclick="handleDoor(false)">🚪 문 닫힘</button>
-        </div>
-    </div>
+            <div class="tcms-panel">
+                <div class="tcms-screen" id="tcmsMonitor">
+                    <div id="doorStatus" style="color:var(--led-red)">● 출입문: 열림</div>
+                    <div id="hvacStatus">● 냉난방: 정지</div>
+                    <div id="lightStatus">● 객실조명: 소등</div>
+                    <div id="arriveLockStatus" style="color:var(--warning-orange)">● 상태: 출발대기</div>
+                </div>
+                <div class="tcms-btn-grid">
+                    <button class="tcms-btn" id="btnHvac" onclick="toggleTcms('hvac')">냉난방</button>
+                    <button class="tcms-btn" id="btnLight" onclick="toggleTcms('light')">객실조명</button>
+                </div>
+            </div>
+        </section>
 
-    <!-- 제동변환기 (감속) -->
-    <div class="lever-panel">
-        <div class="lever-title" style="color:var(--red)">🛑 제동변환기</div>
-        <div class="lever-wrap">
-            <input type="range" id="brkLev" class="vlever" min="0" max="8" value="8">
-        </div>
-        <div class="lever-val" id="brkVal" style="color:var(--red)">B8</div>
-        <div class="lever-btns">
-            <button class="lbtn lbtn-arrive" id="btnArrive" onclick="pressArrive()" disabled>🛑 도착 정지</button>
-            <button class="lbtn lbtn-eb" onclick="emergencyBrake()">⚠️ 긴급제동</button>
-            <button class="lbtn lbtn-eb-release" id="btnEBRelease" onclick="releaseEB()">✅ 제동 해제</button>
-        </div>
-    </div>
-</div>
+        <!-- 감속 패널 -->
+        <section class="lever-area">
+            <div style="font-weight:bold; color:var(--led-red); font-size:0.7rem;">제동변환기</div>
+            <div class="lever-wrapper">
+                <input type="range" id="brkLev" class="vertical-lever" min="0" max="8" value="8">
+            </div>
+            <div id="brkVal" class="lever-val" style="color:var(--led-red)">B8</div>
+            <div style="width:100%; display:flex; flex-direction:column; gap:3px;">
+                <button class="rect-btn" style="background:#c0392b" id="btnArrive" onclick="pressArrive()">도착 정지</button>
+                <button class="rect-btn" style="background:radial-gradient(#ff4d4d, #990000);" onclick="emergencyBrake()">긴급제동</button>
+            </div>
+        </section>
+    </main>
 
-<!-- 하단 무전기 + 안내방송 -->
-<div class="bottom-bar">
-    <div class="radio-box">
-        <button class="ptt-btn"
-            onmousedown="radioOn()" onmouseup="radioOff()"
-            ontouchstart="radioOn()" ontouchend="radioOff()"></button>
-        <div>
-            <div class="radio-status"><strong>TRS 무전기</strong><span id="radioStatus">대기...</span></div>
+    <footer class="bottom-panel">
+        <div class="radio-box">
+            <div class="ptt-btn" onmousedown="radioOn()" onmouseup="radioOff()" ontouchstart="radioOn()" ontouchend="radioOff()"></div>
+            <div style="font-size:0.6rem"><strong>TRS 무전기</strong><br><span id="radioStatus">대기...</span></div>
         </div>
-    </div>
-    <div class="ann-grid">
-        <button class="ann-btn" onclick="playAnn(1)">역 안내</button>
-        <button class="ann-btn" onclick="playAnn(2)">발 빠짐</button>
-        <button class="ann-btn" id="btnTerm" onclick="playAnn(3)" disabled>종점방송</button>
-    </div>
-</div>
-```
-
+        <div class="ann-grid">
+            <button class="ann-btn" onclick="playAnn(1)">역 안내</button>
+            <button class="ann-btn" onclick="playAnn(2)">발 빠짐</button>
+            <button class="ann-btn" id="btnTerm" onclick="playAnn(3)" disabled>종점방송</button>
+        </div>
+    </footer>
 </div>
 
 <script>
-    const stations = ["서울역","공덕","홍대입구","디지털미디어시티","마곡나루","김포공항","계양","검암","청라국제도시","영종","운서","공항화물청사","인천공항1터미널","인천공항2터미널"];
+    // [핵심 기능 유지]
+    const stations = ["서울역", "공덕", "홍대입구", "디지털미디어시티", "마곡나루", "김포공항", "계양", "검암", "청라국제도시", "영종", "운서", "공항화물청사", "인천공항1터미널", "인천공항2터미널"];
     let currentRoute = [];
     let sIdx = 0;
     let speed = 0;
@@ -355,18 +304,13 @@
     let isEB = false;
     let hvac = false;
     let light = false;
-    let hasArrivedAtCurrentStation = true;
+    let hasArrivedAtCurrentStation = true; 
     let occupancyLevels = [20, 45, 80, 55, 30];
 
     function initRoute() {
         const dir = document.getElementById('routeSelect').value;
         currentRoute = dir === 'toIncheon' ? [...stations] : [...stations].reverse();
-        sIdx = 0; speed = 0; isEB = false;
-        hasArrivedAtCurrentStation = true;
-        document.getElementById('btnEBRelease').style.display = 'none';
-        document.getElementById('speedDisp').classList.remove('eb');
-        document.getElementById('pwrLev').value = 0;
-        document.getElementById('brkLev').value = 8;
+        sIdx = 0; speed = 0; isEB = false; hasArrivedAtCurrentStation = true; 
         createOccupancyBoard();
         updateUI();
     }
@@ -374,134 +318,84 @@
     function createOccupancyBoard() {
         const board = document.getElementById('occupancyBoard');
         board.innerHTML = '';
-        for (let i = 1; i <= 5; i++) {
+        for(let i=1; i<=5; i++) {
             const car = document.createElement('div');
             car.className = 'car-unit';
-            const pct = occupancyLevels[i - 1];
-            car.innerHTML = `
-                <div>${i}호</div>
-                <div class="car-bar-bg">
-                    <div class="car-bar-fill" style="height:${pct}%"></div>
-                </div>
-                <div id="door-ind-${i}" class="car-door-ind ${isDoorOpen ? 'open' : ''}"></div>
-                <div>${pct}%</div>
-            `;
+            car.innerHTML = `<div>${i}</div><div class="occupancy-bar-bg"><div style="width:100%; height:${occupancyLevels[i-1]}%; position:absolute; bottom:0; background:var(--led-green);"></div></div><div id="door-ind-${i}" class="car-door-indicator ${isDoorOpen ? 'open' : ''}"></div>`;
             board.appendChild(car);
         }
     }
 
-    // 메인 루프
     setInterval(() => {
-        document.getElementById('clock').innerText = new Date().toLocaleTimeString('ko-KR', {hour12: false});
-
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString('ko-KR', {hour12:false});
         const pwr = parseInt(document.getElementById('pwrLev').value);
         const brk = parseInt(document.getElementById('brkLev').value);
-
-        // 레버값 표시
         document.getElementById('pwrVal').innerText = "P" + pwr;
-        document.getElementById('brkVal').innerText = brk === 0 ? "RUN" : "B" + brk;
-        document.getElementById('pwrValDisp').innerText = "P" + pwr;
-        document.getElementById('brkValDisp').innerText = brk === 0 ? "RUN" : "B" + brk;
-        document.getElementById('pwrBar').style.width = (pwr / 5 * 100) + '%';
-        document.getElementById('brkBar').style.width = (brk / 8 * 100) + '%';
+        document.getElementById('brkVal').innerText = (brk === 0) ? "RUN" : "B" + brk;
 
-        if (isEB) {
-            speed -= 5.0;
-            if (speed <= 0) {
-                speed = 0;
-                document.getElementById('btnEBRelease').style.display = 'block';
-            }
-        } else {
+        if (isEB) speed -= 5.0;
+        else {
             if (pwr > 0 && brk === 0 && !isDoorOpen) {
-                speed += pwr * 0.35;
+                speed += (pwr * 0.35);
                 if (hasArrivedAtCurrentStation) {
                     hasArrivedAtCurrentStation = false;
-                    document.getElementById('arriveLockStatus').innerText = "● 주행 중";
+                    document.getElementById('arriveLockStatus').innerText = "● 상태: 주행 중";
                     document.getElementById('arriveLockStatus').style.color = "white";
                     updateUI();
                 }
-            }
-            if (brk > 0) speed -= brk * 0.6;
+            } 
+            if (brk > 0) speed -= (brk * 0.6); 
             else speed -= 0.1;
         }
-
         if (speed < 0) speed = 0;
         if (speed > 110) speed = 110;
-
-        const spd = Math.floor(speed);
-        document.getElementById('speedDisp').innerText = spd;
-        document.getElementById('spdBar').style.width = (spd / 110 * 100) + '%';
-        document.getElementById('spdPct').innerText = Math.round(spd / 110 * 100) + '%';
-        document.getElementById('btnArrive').disabled = !(spd === 0 && !isEB && !hasArrivedAtCurrentStation);
+        document.getElementById('speedDisp').innerText = Math.floor(speed);
+        document.getElementById('btnArrive').disabled = !(Math.floor(speed) === 0 && !isEB && !hasArrivedAtCurrentStation);
     }, 100);
-
-    function emergencyBrake() {
-        isEB = true;
-        document.getElementById('brkLev').value = 8;
-        document.getElementById('speedDisp').classList.add('eb');
-        document.getElementById('arriveLockStatus').innerText = "● 긴급제동!";
-        document.getElementById('arriveLockStatus').style.color = "var(--red)";
-        speak("긴급 제동!");
-    }
-
-    function releaseEB() {
-        isEB = false;
-        document.getElementById('pwrLev').value = 0;
-        document.getElementById('brkLev').value = 8;
-        document.getElementById('btnEBRelease').style.display = 'none';
-        document.getElementById('speedDisp').classList.remove('eb');
-        document.getElementById('arriveLockStatus').innerText = "● 출발대기";
-        document.getElementById('arriveLockStatus').style.color = "var(--orange)";
-        speak("긴급 제동 해제. 출발 준비.");
-    }
 
     function handleDoor(open) {
         if (speed > 0) { speak("주행 중에는 문을 열 수 없습니다."); return; }
         isDoorOpen = open;
         document.getElementById('doorStatus').innerText = open ? "● 출입문: 열림" : "● 출입문: 닫힘";
-        document.getElementById('doorStatus').style.color = open ? "var(--red)" : "var(--green)";
-        document.querySelectorAll('[id^="door-ind-"]').forEach(el => {
-            el.classList.toggle('open', open);
-        });
+        document.getElementById('doorStatus').style.color = open ? "var(--led-red)" : "var(--led-green)";
+        createOccupancyBoard();
         speak(open ? "문이 열립니다." : "문이 닫힙니다.");
     }
 
     function pressArrive() {
         if (hasArrivedAtCurrentStation) return;
         if (sIdx < currentRoute.length - 2) {
-            sIdx++;
-            hasArrivedAtCurrentStation = true;
-            updateUI();
-            document.getElementById('arriveLockStatus').innerText = "● 도착 완료";
-            document.getElementById('arriveLockStatus').style.color = "var(--green)";
+            sIdx++; hasArrivedAtCurrentStation = true; updateUI();
+            document.getElementById('arriveLockStatus').innerText = "● 상태: 도착 완료";
+            document.getElementById('arriveLockStatus').style.color = "var(--led-green)";
             speak("잠시 후 도착합니다.");
         }
     }
 
+    function emergencyBrake() { isEB = true; document.getElementById('brkLev').value = 8; speak("긴급 제동!"); }
+
     function updateUI() {
         const next = currentRoute[sIdx + 1] || "종착역";
         document.getElementById('nextStation').innerText = next;
-        document.getElementById('btnTerm').disabled = sIdx + 1 !== currentRoute.length - 1;
+        document.getElementById('btnTerm').disabled = (sIdx + 1 !== currentRoute.length - 1);
     }
 
     function toggleTcms(type) {
-        if (type === 'hvac') {
-            hvac = !hvac;
-            document.getElementById('hvacStatus').innerText = hvac ? "● 냉난방: 가동 중" : "● 냉난방: 정지";
-            document.getElementById('btnHvac').classList.toggle('active', hvac);
+        if(type === 'hvac') {
+            hvac = !hvac; document.getElementById('hvacStatus').innerText = hvac ? "● 냉난방: 가동 중" : "● 냉난방: 정지";
+            document.getElementById('btnHvac').classList.toggle('active');
         } else {
-            light = !light;
-            document.getElementById('lightStatus').innerText = light ? "● 객실조명: 점등" : "● 객실조명: 소등";
-            document.getElementById('btnLight').classList.toggle('active', light);
+            light = !light; document.getElementById('lightStatus').innerText = light ? "● 객실조명: 점등" : "● 객실조명: 소등";
+            document.getElementById('btnLight').classList.toggle('active');
         }
     }
 
-    function radioOn() { document.getElementById('radioStatus').innerText = " 송신 중..."; }
-    function radioOff() {
-        document.getElementById('radioStatus').innerText = " 수신 중...";
-        setTimeout(() => speak("관제실입니다. 말씀하세요."), 400);
+    function radioOn() { document.getElementById('radioStatus').innerText = "송신 중..."; }
+    function radioOff() { 
+        document.getElementById('radioStatus').innerText = "수신 중..."; 
+        setTimeout(() => { speak("관제실입니다. 말씀하세요."); }, 400); 
     }
-
+    
     function speak(text) {
         window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance(text);
@@ -518,6 +412,5 @@
 
     window.onload = initRoute;
 </script>
-
 </body>
 </html>
