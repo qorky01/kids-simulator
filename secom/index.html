@@ -100,42 +100,43 @@
     /* 팝업 오버레이 */
     .popup-overlay {
         position: fixed; inset: 0; background: rgba(0,0,0,.88);
-        z-index: 200; display: none; align-items: center; justify-content: center;
-        padding: 16px;
+        z-index: 200; display: none;
+        align-items: flex-end; justify-content: center;
+        padding: 0;
     }
     .popup-overlay.show { display: flex; }
     .popup-box {
-        background: #2c3e50; border-radius: 24px; padding: 22px;
-        width: min(340px, 100%); text-align: center;
-        border: 2px solid #3d5166;
+        background: #2c3e50; border-radius: 24px 24px 0 0; padding: 20px 20px 32px;
+        width: 100%; max-width: 480px; text-align: center;
+        border-top: 2px solid #3d5166;
     }
-    .popup-title { color: var(--accent); font-size: 1.1rem; font-weight: bold; margin-bottom: 4px; }
-    .popup-hint { color: #888; font-size: 0.75rem; margin-bottom: 14px; line-height: 1.5; }
+    .popup-title { color: var(--accent); font-size: 1rem; font-weight: bold; margin-bottom: 3px; }
+    .popup-hint { color: #888; font-size: 0.72rem; margin-bottom: 10px; line-height: 1.4; }
     .popup-display {
         background: #111; color: var(--accent); font-family: 'Courier New', monospace;
-        font-size: 2rem; letter-spacing: 10px; padding: 10px; border-radius: 10px;
-        margin-bottom: 14px; min-height: 54px;
+        font-size: 1.8rem; letter-spacing: 10px; padding: 8px; border-radius: 10px;
+        margin-bottom: 12px; min-height: 48px;
         display: flex; align-items: center; justify-content: center;
     }
-    .popup-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .popup-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
     .pbtn {
-        padding: 14px; background: #34495e; color: white; border: none;
+        padding: 12px; background: #34495e; color: white; border: none;
         border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer;
         font-family: inherit;
     }
     .pbtn:active { background: #4a6888; transform: scale(0.96); }
     .pbtn.clear { background: #c0392b; }
     .pbtn.ok { background: #27ae60; }
-    .popup-actions { display: flex; flex-direction: column; gap: 8px; }
+    .popup-actions { display: flex; gap: 8px; }
     .popup-main-btn {
-        width: 100%; padding: 13px; border: none; border-radius: 12px;
-        font-size: 0.95rem; font-weight: bold; cursor: pointer; font-family: inherit;
+        flex: 1; padding: 11px 8px; border: none; border-radius: 12px;
+        font-size: 0.82rem; font-weight: bold; cursor: pointer; font-family: inherit;
     }
     .popup-main-btn.confirm { background: #2980b9; color: white; }
-    .popup-main-btn.change { background: #34495e; color: #aaa; font-size: 0.85rem; }
-    .popup-main-btn.cancel { background: transparent; color: #666; font-size: 0.82rem; text-decoration: underline; }
+    .popup-main-btn.change { background: #34495e; color: #aaa; }
+    .popup-main-btn.cancel { background: #1a2535; color: #666; }
     .popup-main-btn:active { transform: scale(0.97); }
-    .popup-error { color: #e74c3c; font-size: 0.8rem; height: 1rem; margin-bottom: 8px; }
+    .popup-error { color: #e74c3c; font-size: 0.75rem; height: 0.9rem; margin-bottom: 6px; }
 </style>
 ```
 
