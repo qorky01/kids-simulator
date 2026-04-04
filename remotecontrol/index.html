@@ -1,75 +1,789 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>리프트 조종기</title>
-    <style>
-        body{margin:0;padding:0;background:#000;display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;overflow:hidden;font-family:Arial Black,sans-serif;touch-action:none}
-        .remote-body{width:340px;height:760px;background:linear-gradient(145deg,#fdd835,#f4c242);border-radius:45px;border:5px solid #d4a328;position:relative;display:flex;flex-direction:column;align-items:center;box-shadow:0 20px 50px rgba(0,0,0,.8),inset 0 0 15px rgba(255,255,255,.5);box-sizing:border-box}
-        .hazard-stripe{width:100%;height:40px;background:repeating-linear-gradient(45deg,#111,#111 20px,#fdd835 20px,#fdd835 40px);margin-top:60px;border-top:2px solid #333;border-bottom:2px solid #333}
-        .screw{width:18px;height:18px;background:radial-gradient(circle at 30% 30%,#bbb,#555);border-radius:50%;position:absolute;box-shadow:2px 2px 4px rgba(0,0,0,.4)}
-        .s-tl{top:20px;left:25px}.s-tr{top:20px;right:25px}.s-bl{bottom:20px;left:25px}.s-br{bottom:20px;right:25px}
-        .button-stack{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;align-items:center;width:100%;padding:20px 0 40px}
-        .btn-group{display:flex;flex-direction:column;align-items:center;gap:8px}
-        .btn-outer{width:110px;height:110px;background:#111;border-radius:50%;display:flex;justify-content:center;align-items:center;box-shadow:0 8px 0 #000}
-        .btn-inner{width:95px;height:95px;border-radius:50%;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;transition:transform .05s;box-shadow:inset 0 4px 8px rgba(255,255,255,.3);-webkit-tap-highlight-color:transparent}
-        .btn-inner:active{transform:translateY(6px);box-shadow:inset 0 8px 12px rgba(0,0,0,.6)}
-        .led-hole{width:8px;height:8px;background:#000;border-radius:50%;margin-bottom:5px;transition:background .2s}
-        .black{background:radial-gradient(circle,#555,#111);color:#fff}
-        .red{background:radial-gradient(circle,#b22222,#600);color:#fff}
-        .green{background:radial-gradient(circle,#4caf50,#1b3d1d);color:#fff}
-        .active-green{background:#0f0!important;box-shadow:0 0 15px #0f0!important}
-        .active-red{background:#f00!important;box-shadow:0 0 15px #f00!important}
-        .icon{font-size:40px}.stop-text{font-size:26px;font-weight:900}.label{font-size:16px;color:#331;font-weight:900}
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>타워크레인 조종기</title>
+  <style>
+    :root {
+      --bg: #0d1117; --panel: #161b22; --border: #30363d;
+      --text: #e6edf3; --muted: #7d8590;
+      --yellow: #f4c542; --red: #f85149; --green: #3fb950;
+      --orange: #d29922; --blue: #58a6ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100dvh; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; user-select: none; touch-action: none; }
+
+```
+.app { display: grid; grid-template-rows: 1fr auto; height: 100dvh; }
+
+/* 캔버스 영역 */
+.view { position: relative; overflow: hidden; min-height: 0; }
+canvas { display: block; width: 100%; height: 100%; }
+
+/* 게이지 오버레이 */
+.gauges { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 5px; }
+.gauge-box { background: rgba(0,0,0,.78); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; min-width: 82px; }
+.gauge-label { font-size: 9px; color: var(--muted); margin-bottom: 2px; }
+.gauge-value { font-size: 15px; font-weight: bold; line-height: 1; }
+.gauge-bar { height: 4px; background: #30363d; border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.gauge-fill { height: 100%; border-radius: 2px; transition: width 0.2s, background 0.2s; }
+
+.warn-banner { position: absolute; top: 45%; left: 50%; transform: translate(-50%,-50%); background: rgba(248,81,73,.95); color: #fff; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: bold; display: none; animation: blk .4s infinite; white-space: nowrap; z-index: 10; }
+@keyframes blk { 0%,100%{opacity:1} 50%{opacity:.45} }
+
+.status-log { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,.75); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 10px; color: var(--green); max-width: 180px; }
+
+/* 완료 팝업 */
+.complete-popup { position: absolute; top: 35%; left: 50%; transform: translate(-50%,-50%); background: rgba(20,40,20,.97); border: 2px solid var(--green); border-radius: 14px; padding: 14px 24px; text-align: center; display: none; z-index: 20; }
+.complete-popup .emoji { font-size: 32px; }
+.complete-popup .msg { color: var(--green); font-size: 13px; font-weight: bold; margin-top: 4px; }
+
+/* 패널 */
+.panel { background: var(--panel); border-top: 2px solid var(--border); padding: 8px 10px; display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; }
+.info-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.info-item { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 5px; text-align: center; }
+.info-label { font-size: 8px; color: var(--muted); }
+.info-val { font-size: 12px; font-weight: bold; margin-top: 1px; }
+
+.btn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.ctrl-btn {
+  border: 2px solid var(--border); border-radius: 11px; background: var(--bg);
+  color: var(--text); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 9px 4px; transition: transform .08s, border-color .1s, background .1s;
+  font-family: 'Courier New', monospace;
+}
+.ctrl-btn .icon { font-size: 20px; }
+.ctrl-btn .lbl { font-size: 9px; color: var(--muted); }
+.ctrl-btn:active, .ctrl-btn.active { transform: scale(0.91); }
+
+.btn-up.pressing    { border-color: var(--green);  background: #0d2818; }
+.btn-down.pressing  { border-color: var(--blue);   background: #0d1f35; }
+.btn-left.pressing  { border-color: var(--yellow); background: #2a1f00; }
+.btn-right.pressing { border-color: var(--yellow); background: #2a1f00; }
+.btn-grab           { border-color: #d2992260; }
+.btn-grab.holding   { border-color: var(--orange); background: #2a1800; }
+.btn-horn:active    { border-color: var(--red);    background: #2a0a0a; }
+.btn-light.on       { border-color: #fff;           background: #1a1a2a; }
+.btn-estop          { border-color: var(--red);     background: #1a0505; }
+.btn-estop.active   { background: #3a0a0a; }
+```
+
+  </style>
 </head>
 <body>
-<div class="remote-body">
-    <div class="screw s-tl"></div><div class="screw s-tr"></div>
-    <div class="screw s-bl"></div><div class="screw s-br"></div>
-    <div class="hazard-stripe"></div>
-    <div class="button-stack">
-        <div class="btn-group">
-            <div class="btn-outer">
-                <button class="btn-inner black" onmousedown="playEngine(5)" ontouchstart="playEngine(5)">
-                    <div class="led-hole" id="l1"></div><span class="icon">&#9650;</span>
-                </button>
-            </div>
-            <div class="label">LIFT UP</div>
-        </div>
-        <div class="btn-group">
-            <div class="btn-outer">
-                <button class="btn-inner black" onmousedown="playEngine(5)" ontouchstart="playEngine(5)">
-                    <div class="led-hole" id="l2"></div><span class="icon">&#9660;</span>
-                </button>
-            </div>
-            <div class="label">LIFT DOWN</div>
-        </div>
-        <div class="btn-group">
-            <div class="btn-outer" style="background:#400">
-                <button class="btn-inner red" onclick="toggleSiren()">
-                    <div class="led-hole" id="l3"></div><span class="stop-text">STOP</span>
-                </button>
-            </div>
-            <div class="label">EMERGENCY</div>
-        </div>
-        <div class="btn-group">
-            <div class="btn-outer" style="background:#131">
-                <button class="btn-inner green" onclick="playCall()">
-                    <div class="led-hole" id="l4"></div><span class="icon">&#128222;</span>
-                </button>
-            </div>
-            <div class="label">CALL</div>
-        </div>
-    </div>
+<div class="app">
+  <div class="view">
+    <canvas id="c"></canvas>
+
+```
+<div class="gauges">
+  <div class="gauge-box">
+    <div class="gauge-label">하중</div>
+    <div class="gauge-value" id="gLoad" style="color:var(--green)">0.0t</div>
+    <div class="gauge-bar"><div class="gauge-fill" id="gLoadBar" style="width:0%;background:var(--green)"></div></div>
+  </div>
+  <div class="gauge-box">
+    <div class="gauge-label">높이</div>
+    <div class="gauge-value" id="gHeight" style="color:var(--blue)">0m</div>
+    <div class="gauge-bar"><div class="gauge-fill" id="gHeightBar" style="width:0%;background:var(--blue)"></div></div>
+  </div>
+  <div class="gauge-box">
+    <div class="gauge-label">각도</div>
+    <div class="gauge-value" id="gAngle" style="color:var(--yellow)">0°</div>
+  </div>
 </div>
+
+<div class="warn-banner" id="warnBanner">⚠️ 과부하!</div>
+<div class="status-log" id="statusLog">🏗️ 시스템 준비 완료</div>
+
+<div class="complete-popup" id="completePop">
+  <div class="emoji">🎉</div>
+  <div class="msg" id="completeMsg">목표 지점 도착!</div>
+</div>
+```
+
+  </div>
+
+  <div class="panel">
+    <div class="info-bar">
+      <div class="info-item">
+        <div class="info-label">상태</div>
+        <div class="info-val" id="iState" style="color:var(--green);font-size:10px">대기</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">화물</div>
+        <div class="info-val" id="iCargo" style="color:var(--muted);font-size:10px">없음</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">완료</div>
+        <div class="info-val" id="iComplete" style="color:var(--yellow)">0회</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">풍속</div>
+        <div class="info-val" id="iWind">3m/s</div>
+      </div>
+    </div>
+
+```
+<div class="btn-grid">
+  <div class="ctrl-btn btn-up" id="btnUp"
+    onmousedown="startPress('up')" onmouseup="stopPress()" onmouseleave="stopPress()"
+    ontouchstart="startPress('up')" ontouchend="stopPress()" ontouchcancel="stopPress()">
+    <span class="icon">⬆️</span><span class="lbl">훅 올리기</span>
+  </div>
+  <div class="ctrl-btn btn-down" id="btnDown"
+    onmousedown="startPress('down')" onmouseup="stopPress()" onmouseleave="stopPress()"
+    ontouchstart="startPress('down')" ontouchend="stopPress()" ontouchcancel="stopPress()">
+    <span class="icon">⬇️</span><span class="lbl">훅 내리기</span>
+  </div>
+  <div class="ctrl-btn btn-left" id="btnLeft"
+    onmousedown="startPress('left')" onmouseup="stopPress()" onmouseleave="stopPress()"
+    ontouchstart="startPress('left')" ontouchend="stopPress()" ontouchcancel="stopPress()">
+    <span class="icon">⬅️</span><span class="lbl">트롤리 좌</span>
+  </div>
+  <div class="ctrl-btn btn-right" id="btnRight"
+    onmousedown="startPress('right')" onmouseup="stopPress()" onmouseleave="stopPress()"
+    ontouchstart="startPress('right')" ontouchend="stopPress()" ontouchcancel="stopPress()">
+    <span class="icon">➡️</span><span class="lbl">트롤리 우</span>
+  </div>
+  <div class="ctrl-btn btn-grab" id="btnGrab" onclick="toggleGrab()">
+    <span class="icon" id="grabIcon">🪝</span><span class="lbl" id="grabLbl">화물 집기</span>
+  </div>
+  <div class="ctrl-btn btn-horn" onclick="hornBeep()">
+    <span class="icon">📯</span><span class="lbl">경적</span>
+  </div>
+  <div class="ctrl-btn btn-light" id="btnLight" onclick="toggleLight()">
+    <span class="icon">💡</span><span class="lbl">조명</span>
+  </div>
+  <div class="ctrl-btn btn-estop" id="btnEstop" onclick="emergencyStop()">
+    <span class="icon">🛑</span><span class="lbl">비상정지</span>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
 <script>
-    var audioCtx=null,isEmergency=false,sirenInterval=null,synth=window.speechSynthesis;
-    function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();return audioCtx;}
-    function playEngine(duration){var ctx=getAudio();if(isEmergency)return;document.getElementById("l1").classList.add("active-green");document.getElementById("l2").classList.add("active-green");var now=ctx.currentTime,master=ctx.createGain();master.gain.value=1.8;[{f:45,t:"sawtooth",g:.7},{f:90,t:"square",g:.4},{f:150,t:"sawtooth",g:.3}].forEach(function(l){var o=ctx.createOscillator(),g=ctx.createGain();o.type=l.t;o.frequency.setValueAtTime(l.f,now);g.gain.setValueAtTime(l.g,now);g.gain.exponentialRampToValueAtTime(.01,now+duration);o.connect(g).connect(master).connect(ctx.destination);o.start(now);o.stop(now+duration);});setTimeout(function(){document.getElementById("l1").classList.remove("active-green");document.getElementById("l2").classList.remove("active-green");},duration*1000);}
-    function toggleSiren(){var ctx=getAudio(),led=document.getElementById("l3");if(isEmergency){isEmergency=false;led.classList.remove("active-red");clearInterval(sirenInterval);}else{isEmergency=true;led.classList.add("active-red");sirenInterval=setInterval(function(){var o=ctx.createOscillator(),g=ctx.createGain();o.frequency.setValueAtTime(500,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(1000,ctx.currentTime+.4);g.gain.value=.5;o.connect(g).connect(ctx.destination);o.start();o.stop(ctx.currentTime+.5);},600);}}
-    function playCall(){var ctx=getAudio(),led=document.getElementById("l4");led.classList.add("active-green");var u=new SpeechSynthesisUtterance("전화를 연결하고 있습니다. 잠시만 기다려 주십시오.");u.lang="ko-KR";var o=ctx.createOscillator(),g=ctx.createGain();o.frequency.setValueAtTime(400,ctx.currentTime);g.gain.value=.4;o.connect(g).connect(ctx.destination);o.start();o.stop(ctx.currentTime+1);synth.cancel();setTimeout(function(){synth.speak(u);},300);u.onend=function(){led.classList.remove("active-green");};}
-<\/script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// ===== 크레인 상태 =====
+// towerX: 타워 중심 X (고정)
+// boomLen: 붐대 길이 (픽셀)
+// trolleyT: 트롤리 위치 비율 0~1 (붐대 위)
+// wireLen: 와이어 길이 (픽셀)
+// cargoOnGround: 바닥 화물 위치 {x, y}
+// targetX: 목표 지점 X
+
+const MAX_LOAD = 5.0;
+const MAX_WIRE = 0.85; // 화면 높이 대비 최대 와이어 비율
+
+let W, H; // 캔버스 크기
+
+let crane = {
+  towerX: 0,
+  towerBaseY: 0,
+  towerTopY: 0,
+  boomLen: 0,
+
+  trolleyT: 0.5,    // 0~1 (붐 위 위치 비율)
+  wireLen: 60,      // px
+
+  hasLoad: false,
+  load: 0,
+  cargoW: 0, cargoH: 0,
+  lightOn: false,
+  estop: false,
+  completed: 0,
+
+  // 목표 화물 지면 위치
+  groundCargoX: 0,
+
+  // 목표 착지 지점
+  targetX: 0,
+};
+
+let pressing = null;
+let pressInterval = null;
+let audioCtx = null;
+
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function beep(freq, dur, type='sine', vol=0.07) {
+  try {
+    const a = getAudio();
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(); o.stop(a.currentTime + dur);
+  } catch(e) {}
+}
+function speak(text) {
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ko-KR'; u.rate = 1.05;
+  window.speechSynthesis.speak(u);
+}
+function setLog(msg) { document.getElementById('statusLog').textContent = msg; }
+function setState(msg, color='#3fb950') {
+  const el = document.getElementById('iState');
+  el.textContent = msg; el.style.color = color;
+}
+
+// ===== 크기 초기화 =====
+function resize() {
+  const view = canvas.parentElement;
+  W = view.clientWidth;
+  H = view.clientHeight;
+  canvas.width = W;
+  canvas.height = H;
+
+  crane.towerX = W * 0.2;
+  crane.towerBaseY = H * 0.88;
+  crane.towerTopY = H * 0.12;
+  crane.boomLen = W * 0.72;
+  crane.cargoW = W * 0.08;
+  crane.cargoH = H * 0.06;
+
+  // 지면 화물 위치 (처음엔 붐대 오른쪽 중간 아래)
+  if (!crane.groundCargoX) crane.groundCargoX = crane.towerX + crane.boomLen * 0.6;
+  // 목표 지점
+  if (!crane.targetX) crane.targetX = crane.towerX + crane.boomLen * 0.75;
+
+  draw();
+}
+
+// ===== 좌표 계산 =====
+// 트롤리 절대 좌표
+function trolleyPos() {
+  const t = crane.trolleyT;
+  const x = crane.towerX + crane.boomLen * t;
+  const y = crane.towerTopY + 6; // 붐대 두께 절반
+  return { x, y };
+}
+
+// 훅 절대 좌표
+function hookPos() {
+  const tp = trolleyPos();
+  return { x: tp.x, y: tp.y + crane.wireLen };
+}
+
+// 화물 좌표 (훅에 매달린 상태)
+function cargoPos() {
+  const hp = hookPos();
+  return { x: hp.x - crane.cargoW / 2, y: hp.y + 4 };
+}
+
+// ===== 그리기 =====
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // 배경 그라디언트
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#0a1628');
+  sky.addColorStop(0.75, '#0d1f35');
+  sky.addColorStop(0.85, '#1a2f1a');
+  sky.addColorStop(1, '#2a4a1a');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  // 조명 효과
+  if (crane.lightOn) {
+    const tp = trolleyPos();
+    const lg = ctx.createRadialGradient(tp.x, tp.y, 5, tp.x, tp.y + 80, 160);
+    lg.addColorStop(0, 'rgba(255,240,150,0.18)');
+    lg.addColorStop(1, 'rgba(255,240,150,0)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  drawBuildings();
+  drawGround();
+  drawTargetZone();
+  drawGroundCargo();
+  drawCrane();
+  drawGauges();
+}
+
+function drawBuildings() {
+  const buildings = [
+    {x:W*0.01,w:W*0.04,h:H*0.18,color:'#1a2535'},
+    {x:W*0.06,w:W*0.05,h:H*0.28,color:'#1e2a3a'},
+    {x:W*0.12,w:W*0.04,h:H*0.14,color:'#1a2535'},
+    {x:W*0.45,w:W*0.05,h:H*0.22,color:'#1e2a3a'},
+    {x:W*0.52,w:W*0.06,h:H*0.32,color:'#1a2535'},
+    {x:W*0.60,w:W*0.04,h:H*0.18,color:'#1e2a3a'},
+    {x:W*0.66,w:W*0.05,h:H*0.25,color:'#1a2535'},
+    {x:W*0.73,w:W*0.04,h:H*0.38,color:'#1e2a3a'},
+    {x:W*0.79,w:W*0.06,h:H*0.20,color:'#1a2535'},
+    {x:W*0.87,w:W*0.05,h:H*0.30,color:'#1e2a3a'},
+    {x:W*0.93,w:W*0.07,h:H*0.16,color:'#1a2535'},
+  ];
+  buildings.forEach(b => {
+    ctx.fillStyle = b.color;
+    ctx.strokeStyle = '#243040';
+    ctx.lineWidth = 1;
+    ctx.fillRect(b.x, crane.towerBaseY - b.h, b.w, b.h);
+    ctx.strokeRect(b.x, crane.towerBaseY - b.h, b.w, b.h);
+    // 창문
+    ctx.fillStyle = 'rgba(255,240,100,0.25)';
+    for(let row=0; row<Math.floor(b.h/14); row++) {
+      for(let col=0; col<Math.floor(b.w/8); col++) {
+        if (Math.random() > 0.4) {
+          ctx.fillRect(b.x + 3 + col*8, crane.towerBaseY - b.h + 4 + row*14, 4, 4);
+        }
+      }
+    }
+  });
+}
+
+function drawGround() {
+  const gy = crane.towerBaseY;
+  const grad = ctx.createLinearGradient(0, gy, 0, H);
+  grad.addColorStop(0, '#2a4a1a');
+  grad.addColorStop(1, '#1e3510');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, gy, W, H - gy);
+  ctx.strokeStyle = '#3a6020';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+}
+
+function drawTargetZone() {
+  const tx = crane.targetX;
+  const ty = crane.towerBaseY;
+  const zw = crane.cargoW * 1.6;
+
+  // 황색 사선 패턴 목표 구역
+  ctx.save();
+  ctx.strokeStyle = '#f4c542';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 4]);
+  ctx.strokeRect(tx - zw/2, ty - crane.cargoH - 4, zw, crane.cargoH + 4);
+  ctx.setLineDash([]);
+
+  // 화살표 표시
+  ctx.fillStyle = 'rgba(244,197,66,0.15)';
+  ctx.fillRect(tx - zw/2, ty - crane.cargoH - 4, zw, crane.cargoH + 4);
+
+  // 레이블
+  ctx.fillStyle = '#f4c54290';
+  ctx.font = `${Math.max(9, W*0.025)}px Courier New`;
+  ctx.textAlign = 'center';
+  ctx.fillText('목표', tx, ty - crane.cargoH - 8);
+  ctx.restore();
+}
+
+function drawGroundCargo() {
+  if (crane.hasLoad) return;
+  const gx = crane.groundCargoX;
+  const gy = crane.towerBaseY;
+  const cw = crane.cargoW, ch = crane.cargoH;
+
+  // 상자
+  ctx.fillStyle = '#8b5e3c';
+  ctx.strokeStyle = '#5c3010';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(gx - cw/2, gy - ch, cw, ch);
+  ctx.strokeRect(gx - cw/2, gy - ch, cw, ch);
+  // 십자선
+  ctx.beginPath();
+  ctx.moveTo(gx, gy - ch); ctx.lineTo(gx, gy);
+  ctx.moveTo(gx - cw/2, gy - ch/2); ctx.lineTo(gx + cw/2, gy - ch/2);
+  ctx.strokeStyle = '#5c3010'; ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // 화물 집기 가능 범위 표시
+  const hp = hookPos();
+  const dx = Math.abs(hp.x - gx);
+  const dy = Math.abs(hp.y - (gy - ch/2));
+  if (dx < crane.boomLen * 0.08 && dy < H * 0.06) {
+    ctx.strokeStyle = '#3fb950';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.strokeRect(gx - cw/2 - 4, gy - ch - 4, cw + 8, ch + 8);
+    ctx.setLineDash([]);
+
+    // "집기 가능" 텍스트
+    ctx.fillStyle = '#3fb950';
+    ctx.font = `${Math.max(9, W*0.022)}px Courier New`;
+    ctx.textAlign = 'center';
+    ctx.fillText('집기 가능!', gx, gy - ch - 10);
+  }
+}
+
+function drawCrane() {
+  const tx = crane.towerX;
+  const tTopY = crane.towerTopY;
+  const tBaseY = crane.towerBaseY;
+  const boomEnd = tx + crane.boomLen;
+
+  // === 타워 ===
+  const towerGrad = ctx.createLinearGradient(tx - 10, 0, tx + 10, 0);
+  towerGrad.addColorStop(0, '#c87010');
+  towerGrad.addColorStop(0.4, '#f4b820');
+  towerGrad.addColorStop(1, '#c87010');
+  ctx.fillStyle = towerGrad;
+  ctx.fillRect(tx - 10, tTopY, 20, tBaseY - tTopY);
+
+  // 타워 줄무늬
+  ctx.strokeStyle = '#c87010';
+  ctx.lineWidth = 1;
+  for (let y = tTopY + 40; y < tBaseY; y += 40) {
+    ctx.beginPath(); ctx.moveTo(tx - 10, y); ctx.lineTo(tx + 10, y); ctx.stroke();
+  }
+
+  // 타워 캡
+  ctx.fillStyle = '#f4c542';
+  ctx.beginPath();
+  ctx.moveTo(tx - 14, tTopY);
+  ctx.lineTo(tx + 14, tTopY);
+  ctx.lineTo(tx + 8, tTopY - 18);
+  ctx.lineTo(tx - 8, tTopY - 18);
+  ctx.closePath();
+  ctx.fill();
+
+  // === 붐대 ===
+  const boomY = tTopY + 6;
+
+  // 균형추 쪽 (왼쪽)
+  ctx.fillStyle = '#d4a522';
+  ctx.fillRect(tx - W*0.12, boomY - 4, W*0.12, 8);
+  // 균형추
+  ctx.fillStyle = '#555';
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  ctx.fillRect(tx - W*0.15, boomY - 10, W*0.04, 20);
+  ctx.strokeRect(tx - W*0.15, boomY - 10, W*0.04, 20);
+
+  // 메인 붐
+  const boomGrad = ctx.createLinearGradient(0, boomY - 5, 0, boomY + 5);
+  boomGrad.addColorStop(0, '#f4c542');
+  boomGrad.addColorStop(0.5, '#ffd860');
+  boomGrad.addColorStop(1, '#d4a522');
+  ctx.fillStyle = boomGrad;
+  ctx.fillRect(tx, boomY - 5, crane.boomLen, 10);
+
+  // 붐대 트러스 (삼각형 지지대)
+  ctx.strokeStyle = '#d4a522';
+  ctx.lineWidth = 1.5;
+  const step = crane.boomLen / 5;
+  for (let i = 0; i < 5; i++) {
+    const sx = tx + step * i;
+    const ex = tx + step * (i + 1);
+    ctx.beginPath();
+    ctx.moveTo(sx, boomY + 5);
+    ctx.lineTo((sx + ex) / 2, boomY + 18);
+    ctx.lineTo(ex, boomY + 5);
+    ctx.stroke();
+  }
+
+  // === 운전실 ===
+  ctx.fillStyle = '#2a5a8a';
+  ctx.strokeStyle = '#1a3a5a';
+  ctx.lineWidth = 1;
+  ctx.fillRect(tx + 2, boomY + 5, 22, 18);
+  ctx.strokeRect(tx + 2, boomY + 5, 22, 18);
+  ctx.fillStyle = 'rgba(120,180,230,0.65)';
+  ctx.fillRect(tx + 5, boomY + 8, 8, 7);
+
+  // === 트롤리 ===
+  const tp = trolleyPos();
+  ctx.fillStyle = '#888';
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(tp.x - 9, tp.y - 2, 18, 8);
+  ctx.strokeRect(tp.x - 9, tp.y - 2, 18, 8);
+  // 트롤리 바퀴
+  ctx.fillStyle = '#444';
+  ctx.beginPath(); ctx.arc(tp.x - 5, tp.y - 2, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(tp.x + 5, tp.y - 2, 3, 0, Math.PI * 2); ctx.fill();
+
+  // === 와이어 ===
+  const hp = hookPos();
+  ctx.strokeStyle = '#aaa';
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(tp.x, tp.y + 6);
+  ctx.lineTo(hp.x, hp.y);
+  ctx.stroke();
+
+  // === 훅 ===
+  ctx.strokeStyle = '#999';
+  ctx.lineWidth = 2.5;
+  ctx.fillStyle = 'none';
+  // 훅 링
+  ctx.beginPath();
+  ctx.arc(hp.x, hp.y + 5, 5, 0, Math.PI * 2);
+  ctx.stroke();
+  // 훅 곡선
+  ctx.beginPath();
+  ctx.moveTo(hp.x, hp.y + 10);
+  ctx.bezierCurveTo(hp.x + 8, hp.y + 14, hp.x + 8, hp.y + 22, hp.x, hp.y + 24);
+  ctx.bezierCurveTo(hp.x - 6, hp.y + 26, hp.x - 7, hp.y + 30, hp.x - 2, hp.y + 30);
+  ctx.stroke();
+
+  // === 화물 (매달린 상태) ===
+  if (crane.hasLoad) {
+    const cp = cargoPos();
+    // 줄 (훅 → 화물)
+    ctx.strokeStyle = '#aaa';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(hp.x - 6, hp.y + 30);
+    ctx.lineTo(cp.x + crane.cargoW * 0.3, cp.y);
+    ctx.moveTo(hp.x + 2, hp.y + 30);
+    ctx.lineTo(cp.x + crane.cargoW * 0.7, cp.y);
+    ctx.stroke();
+
+    // 상자
+    ctx.fillStyle = '#8b5e3c';
+    ctx.strokeStyle = '#5c3010';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(cp.x, cp.y, crane.cargoW, crane.cargoH);
+    ctx.strokeRect(cp.x, cp.y, crane.cargoW, crane.cargoH);
+    // 십자선
+    ctx.beginPath();
+    ctx.moveTo(cp.x + crane.cargoW/2, cp.y);
+    ctx.lineTo(cp.x + crane.cargoW/2, cp.y + crane.cargoH);
+    ctx.moveTo(cp.x, cp.y + crane.cargoH/2);
+    ctx.lineTo(cp.x + crane.cargoW, cp.y + crane.cargoH/2);
+    ctx.strokeStyle = '#5c3010'; ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+function drawGauges() {
+  // 높이 계산
+  const hp = hookPos();
+  const heightM = Math.max(0, Math.round(((crane.towerBaseY - hp.y) / (crane.towerBaseY - crane.towerTopY)) * 18));
+  document.getElementById('gHeight').textContent = heightM + 'm';
+  document.getElementById('gHeightBar').style.width = (heightM / 18 * 100) + '%';
+
+  // 각도 (트롤리 위치 기반)
+  const angleDeg = Math.round(crane.trolleyT * 90);
+  document.getElementById('gAngle').textContent = angleDeg + '°';
+
+  // 하중
+  if (crane.hasLoad) {
+    const pct = crane.load / MAX_LOAD;
+    const color = pct > 0.8 ? '#f85149' : pct > 0.6 ? '#d29922' : '#3fb950';
+    document.getElementById('gLoad').textContent = crane.load.toFixed(1) + 't';
+    document.getElementById('gLoad').style.color = color;
+    document.getElementById('gLoadBar').style.width = (pct * 100) + '%';
+    document.getElementById('gLoadBar').style.background = color;
+    document.getElementById('warnBanner').style.display = crane.load >= MAX_LOAD ? 'block' : 'none';
+  } else {
+    document.getElementById('gLoad').textContent = '0.0t';
+    document.getElementById('gLoadBar').style.width = '0%';
+    document.getElementById('warnBanner').style.display = 'none';
+  }
+}
+
+// ===== 버튼 조작 =====
+function startPress(dir) {
+  if (crane.estop) { beep(200, 0.2, 'square'); setLog('⛔ 비상정지 해제 후 조작하세요'); return; }
+  getAudio();
+  pressing = dir;
+  document.getElementById('btn' + dir.charAt(0).toUpperCase() + dir.slice(1)).classList.add('pressing');
+  clearInterval(pressInterval);
+  pressInterval = setInterval(() => doMove(dir), 60);
+  doMove(dir);
+}
+
+function stopPress() {
+  if (pressing) {
+    const id = 'btn' + pressing.charAt(0).toUpperCase() + pressing.slice(1);
+    document.getElementById(id)?.classList.remove('pressing');
+  }
+  pressing = null;
+  clearInterval(pressInterval);
+  setState('대기', '#3fb950');
+}
+
+function doMove(dir) {
+  if (crane.estop) return;
+
+  if (dir === 'up') {
+    crane.wireLen = Math.max(20, crane.wireLen - 4);
+    setState('상승 중', '#3fb950');
+    beep(220, 0.04, 'square', 0.03);
+  } else if (dir === 'down') {
+    const maxWire = crane.towerBaseY - trolleyPos().y - crane.cargoH - 2;
+    crane.wireLen = Math.min(maxWire, crane.wireLen + 4);
+    setState('하강 중', '#58a6ff');
+    beep(180, 0.04, 'square', 0.03);
+
+    // 집기 힌트
+    if (!crane.hasLoad) {
+      const hp = hookPos();
+      const dx = Math.abs(hp.x - crane.groundCargoX);
+      const dy = Math.abs(hp.y - (crane.towerBaseY - crane.cargoH/2));
+      if (dx < crane.boomLen * 0.08 && dy < H * 0.07) {
+        setLog('💡 [화물 집기] 버튼을 눌러보세요!');
+      }
+    }
+  } else if (dir === 'left') {
+    crane.trolleyT = Math.max(0.05, crane.trolleyT - 0.012);
+    setState('← 이동', '#f4c542');
+    beep(160, 0.04, 'square', 0.025);
+  } else if (dir === 'right') {
+    crane.trolleyT = Math.min(0.95, crane.trolleyT + 0.012);
+    setState('→ 이동', '#f4c542');
+    beep(160, 0.04, 'square', 0.025);
+  }
+
+  draw();
+}
+
+// ===== 화물 집기/놓기 =====
+function toggleGrab() {
+  getAudio();
+  if (crane.estop) return;
+
+  if (!crane.hasLoad) {
+    const hp = hookPos();
+    const dx = Math.abs(hp.x - crane.groundCargoX);
+    const dy = Math.abs(hp.y - (crane.towerBaseY - crane.cargoH / 2));
+    const near = dx < crane.boomLen * 0.1 && dy < H * 0.08;
+
+    if (!near) {
+      beep(200, 0.25, 'sawtooth');
+      setLog('⚠️ 훅을 화물 바로 위에 내려주세요');
+      speak("훅을 화물 위로 이동해 주세요.");
+      draw();
+      return;
+    }
+
+    crane.hasLoad = true;
+    crane.load = parseFloat((1.5 + Math.random() * 2.5).toFixed(1));
+    document.getElementById('btnGrab').classList.add('holding');
+    document.getElementById('grabIcon').textContent = '📦';
+    document.getElementById('grabLbl').textContent = '화물 놓기';
+    document.getElementById('iCargo').textContent = crane.load.toFixed(1) + 't';
+    document.getElementById('iCargo').style.color = '#f4c542';
+    beep(600, 0.08); setTimeout(() => beep(900, 0.12), 100);
+    setLog('✅ 화물 집기! ' + crane.load.toFixed(1) + 't');
+    speak("화물을 집었습니다. " + crane.load.toFixed(1) + "톤.");
+
+    // 과부하 체크
+    if (crane.load >= MAX_LOAD) {
+      crane.estop = true;
+      speak("과부하! 비상 정지.");
+    }
+
+  } else {
+    // 놓기
+    const hp = hookPos();
+    const onTarget = Math.abs(hp.x - crane.targetX) < crane.boomLen * 0.09
+                  && hp.y > crane.towerBaseY - crane.cargoH * 2.5;
+
+    crane.hasLoad = false;
+    crane.load = 0;
+    // 화물 새 위치
+    crane.groundCargoX = hp.x;
+
+    document.getElementById('btnGrab').classList.remove('holding');
+    document.getElementById('grabIcon').textContent = '🪝';
+    document.getElementById('grabLbl').textContent = '화물 집기';
+    document.getElementById('iCargo').textContent = '없음';
+    document.getElementById('iCargo').style.color = '#7d8590';
+
+    if (onTarget) {
+      crane.completed++;
+      document.getElementById('iComplete').textContent = crane.completed + '회';
+      beep(523, 0.1); setTimeout(() => beep(659, 0.1), 110); setTimeout(() => beep(784, 0.2), 220);
+      setLog('🎉 목표 도착! 총 ' + crane.completed + '회 완료');
+      speak("완벽합니다! 목표 지점에 화물을 내렸어요!");
+      showComplete('🎉 목표 지점 도착!\n완료 ' + crane.completed + '회');
+
+      // 새 목표/화물 위치 설정
+      setTimeout(() => {
+        crane.targetX = crane.towerX + crane.boomLen * (0.2 + Math.random() * 0.7);
+        crane.groundCargoX = crane.towerX + crane.boomLen * (0.2 + Math.random() * 0.5);
+        draw();
+      }, 2500);
+    } else {
+      beep(400, 0.15);
+      setLog('📦 화물 내림. 목표 지점으로 옮겨보세요!');
+      speak("화물을 내렸습니다.");
+    }
+  }
+
+  draw();
+}
+
+function showComplete(msg) {
+  const pop = document.getElementById('completePop');
+  document.getElementById('completeMsg').textContent = msg;
+  pop.style.display = 'block';
+  setTimeout(() => { pop.style.display = 'none'; }, 2500);
+}
+
+// ===== 경적 =====
+function hornBeep() {
+  getAudio();
+  beep(220, 0.7, 'sawtooth', 0.14);
+  setTimeout(() => beep(196, 0.5, 'sawtooth', 0.11), 280);
+  setLog('📯 빵빵!');
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+}
+
+// ===== 조명 =====
+function toggleLight() {
+  crane.lightOn = !crane.lightOn;
+  document.getElementById('btnLight').classList.toggle('on', crane.lightOn);
+  beep(crane.lightOn ? 600 : 400, 0.08);
+  setLog(crane.lightOn ? '💡 조명 ON' : '💡 조명 OFF');
+  draw();
+}
+
+// ===== 비상정지 =====
+function emergencyStop() {
+  getAudio();
+  crane.estop = !crane.estop;
+  stopPress();
+  const btn = document.getElementById('btnEstop');
+  if (crane.estop) {
+    btn.classList.add('active');
+    beep(200, 0.5, 'square', 0.15); setTimeout(() => beep(150, 0.6, 'square', 0.15), 350);
+    setState('비상정지', '#f85149');
+    setLog('🛑 비상정지 작동!');
+    speak("비상 정지!");
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+  } else {
+    btn.classList.remove('active');
+    setState('대기', '#3fb950');
+    setLog('✅ 비상정지 해제. 재운전 가능');
+    speak("비상 정지 해제.");
+    beep(800, 0.1); setTimeout(() => beep(1000, 0.15), 120);
+  }
+  draw();
+}
+
+// ===== 풍속 랜덤 =====
+setInterval(() => {
+  const w = (1 + Math.random() * 8).toFixed(1);
+  const el = document.getElementById('iWind');
+  el.textContent = w + 'm/s';
+  el.style.color = w > 6 ? '#f85149' : w > 4 ? '#d29922' : '#e6edf3';
+}, 4000);
+
+// ===== 초기화 =====
+window.addEventListener('resize', resize);
+resize();
+speak("타워크레인 시스템 준비 완료.");
+</script>
+
 </body>
 </html>
